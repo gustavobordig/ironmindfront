@@ -118,10 +118,28 @@ export default function WorkoutScreen() {
     // Garantir que exercises existe e é válido antes de fazer map
     if (activeWorkout.exercises && Array.isArray(activeWorkout.exercises)) {
       if (activeWorkout.exercises.length > 0) {
-        // Expandir apenas o primeiro exercício, os demais ficam minimizados
-        const firstExerciseId = activeWorkout.exercises[0]?.id;
-        const onlyFirstExpanded = firstExerciseId ? new Set([firstExerciseId]) : new Set();
-        setExpandedExercises(onlyFirstExpanded);
+        // Preservar exercícios que já estavam expandidos e ainda existem
+        setExpandedExercises((prev) => {
+          const currentExerciseIds = new Set(activeWorkout.exercises.map(ex => ex.id));
+          const preserved = new Set<string>();
+          
+          // Manter apenas os exercícios que ainda existem no workout
+          prev.forEach(exerciseId => {
+            if (currentExerciseIds.has(exerciseId)) {
+              preserved.add(exerciseId);
+            }
+          });
+          
+          // Se nenhum exercício estava expandido, expandir apenas o primeiro
+          if (preserved.size === 0) {
+            const firstExerciseId = activeWorkout.exercises[0]?.id;
+            if (firstExerciseId) {
+              preserved.add(firstExerciseId);
+            }
+          }
+          
+          return preserved;
+        });
       } else {
         // Se exercises existe mas está vazio, apenas limpar expandedExercises
         console.log('Exercises está vazio, limpando expandedExercises');
