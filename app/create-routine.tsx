@@ -18,7 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Exercise, RoutineExercise, DayOfWeek, MuscleGroup, EquipmentType } from '@/types/workout';
 import { colors } from '@/constants/colors';
-import Toast from '@/components/Toast';
+import Toast from '@/components/atoms/Toast';
 
 const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 

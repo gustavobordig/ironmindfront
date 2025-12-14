@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { router } from 'expo-router';
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react-native';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   View,
@@ -11,7 +12,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,38 +20,54 @@ import { ApiError } from '@/services/api';
 
 export default function LoginScreen() {
   const { login } = useAuth();
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      setError('Por favor, preencha todos os campos');
+      showToast('Por favor, preencha todos os campos', 'error');
       return;
     }
 
     if (!email.includes('@')) {
-      setError('Por favor, insira um email válido');
+      showToast('Por favor, insira um email válido', 'error');
       return;
     }
 
     setIsLoading(true);
-    setError(null);
 
     try {
       await login({ email: email.trim(), password });
+      
+      // Mostrar toast de sucesso
+      showToast('Login realizado com sucesso!', 'success');
+      
+      // Aguardar tempo suficiente para o toast aparecer e ser visível
+      // Animação de entrada: 300ms + tempo de visualização: 2000ms = 2300ms total
+      await new Promise(resolve => setTimeout(resolve, 2300));
+      
+      // Só então navegar
+      setIsLoading(false);
       router.replace('/(tabs)');
     } catch (err: any) {
       console.error('Login error:', err);
+      
+      let errorMessage = 'Erro ao fazer login. Verifique sua conexão e tente novamente.';
+      
       if (err instanceof ApiError) {
-        setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
-      } else {
-        setError('Erro ao fazer login. Verifique sua conexão e tente novamente.');
+        // Tratar especificamente erro 401 (credenciais inválidas)
+        if (err.statusCode === 401) {
+          errorMessage = err.message || 'Credenciais inválidas. Verifique seu email e senha.';
+        } else {
+          errorMessage = err.message || 'Erro ao fazer login. Tente novamente.';
+        }
       }
-    } finally {
+      
       setIsLoading(false);
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -73,13 +89,6 @@ export default function LoginScreen() {
               </Text>
             </View>
 
-            {error && (
-              <View style={styles.errorContainer}>
-                <AlertCircle size={20} color={colors.error} />
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
             <View style={styles.form}>
               <View style={styles.inputContainer}>
                 <Mail size={20} color={colors.textSecondary} style={styles.inputIcon} />
@@ -90,7 +99,6 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
-                    setError(null);
                   }}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -108,7 +116,6 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
-                    setError(null);
                   }}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
@@ -190,20 +197,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.error + '20',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    gap: 8,
-  },
-  errorText: {
-    flex: 1,
-    color: colors.error,
-    fontSize: 14,
   },
   form: {
     gap: 16,

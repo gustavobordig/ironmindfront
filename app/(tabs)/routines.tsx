@@ -15,8 +15,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Toast from '@/components/Toast';
-import ActiveWorkoutBanner from '@/components/ActiveWorkoutBanner';
+import Toast from '@/components/atoms/Toast';
+import ActiveWorkoutBanner from '@/components/organisms/ActiveWorkoutBanner';
 
 const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 

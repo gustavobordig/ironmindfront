@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
-import ActiveWorkoutBanner from '@/components/ActiveWorkoutBanner';
+import ActiveWorkoutBanner from '@/components/organisms/ActiveWorkoutBanner';
 
 type PeriodFilter = '7' | '30' | '90' | 'all';
 
