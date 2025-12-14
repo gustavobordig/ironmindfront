@@ -5,9 +5,9 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LogOut } from 'lucide-react-native';
-import MonthCalendar from '@/components/MonthCalendar';
-import TodayRoutineCard from '@/components/TodayRoutineCard';
-import ActiveWorkoutBanner from '@/components/ActiveWorkoutBanner';
+import MonthCalendar from '@/components/organisms/MonthCalendar';
+import TodayRoutineCard from '@/components/molecules/TodayRoutineCard';
+import ActiveWorkoutBanner from '@/components/organisms/ActiveWorkoutBanner';
 import { colors } from '@/constants/colors';
 
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];

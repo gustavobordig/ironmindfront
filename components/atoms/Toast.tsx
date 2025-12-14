@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { colors } from '@/constants/colors';
 
-interface ToastProps {
+export interface ToastProps {
   message: string;
   type?: 'success' | 'error' | 'info';
   visible: boolean;
@@ -10,7 +10,23 @@ interface ToastProps {
   duration?: number;
 }
 
-export default function Toast({ message, type = 'info', visible, onHide, duration = 3000 }: ToastProps) {
+/**
+ * Componente Toast (Atom)
+ * Exibe mensagens temporárias de feedback ao usuário
+ * 
+ * @param message - Mensagem a ser exibida
+ * @param type - Tipo do toast (success, error, info)
+ * @param visible - Controla a visibilidade do toast
+ * @param onHide - Callback chamado quando o toast é escondido
+ * @param duration - Duração em milissegundos (padrão: 3000ms)
+ */
+export default function Toast({ 
+  message, 
+  type = 'info', 
+  visible, 
+  onHide, 
+  duration = 3000 
+}: ToastProps) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-100)).current;
 

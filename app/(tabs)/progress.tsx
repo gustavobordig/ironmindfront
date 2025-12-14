@@ -12,8 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MuscleGroup, Exercise } from '@/types/workout';
 import { colors } from '@/constants/colors';
-import ActiveWorkoutBanner from '@/components/ActiveWorkoutBanner';
-import SimpleLineChart from '@/components/SimpleLineChart';
+import ActiveWorkoutBanner from '@/components/organisms/ActiveWorkoutBanner';
+import SimpleLineChart from '@/components/organisms/SimpleLineChart';
 
 const MUSCLE_GROUPS: { label: string; value: MuscleGroup }[] = [
   { label: 'Peito', value: 'chest' },
