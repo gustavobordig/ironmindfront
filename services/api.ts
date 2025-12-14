@@ -5,13 +5,27 @@ import { Platform } from 'react-native';
 
 // Função para obter a URL base da API
 function getApiBaseUrl(): string {
-  // Se houver variável de ambiente definida, usar ela
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
+  // PRIORIDADE 1: Se houver variável de ambiente definida, usar ela (sempre)
+  const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envApiUrl) {
+    let apiUrl = envApiUrl.trim();
+    
+    // Garantir que a URL tenha protocolo (http:// ou https://)
+    if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
+      // Se não tiver protocolo, adicionar https://
+      apiUrl = `https://${apiUrl}`;
+      console.warn('⚠️ Protocolo não encontrado na URL. Adicionando https://');
+    }
+    
+    // Garantir que a URL não tenha barra no final
+    const finalUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+    console.log('🔗 Usando URL da API da variável de ambiente:', finalUrl);
+    return finalUrl;
   }
+  
+  console.warn('⚠️ EXPO_PUBLIC_API_URL não encontrada. Verificando fallbacks...');
 
-  // Para desenvolvimento no Expo Go
-  // No iOS, precisamos usar o IP local da máquina ao invés de localhost
+  // PRIORIDADE 2: Para desenvolvimento local (apenas se não houver variável de ambiente)
   if (__DEV__) {
     // Tentar obter o IP do manifest (quando rodando no Expo Go)
     const debuggerHost = Constants.expoConfig?.hostUri;
@@ -19,26 +33,37 @@ function getApiBaseUrl(): string {
     if (debuggerHost) {
       // Extrair o IP do hostUri (formato: IP:porta)
       const ip = debuggerHost.split(':')[0];
-      console.log('🔗 API URL detectada automaticamente:', `http://${ip}:3000/api`);
+      console.log('🔗 API URL detectada automaticamente (dev):', `http://${ip}:3000/api`);
       return `http://${ip}:3000/api`;
     }
     
     // Fallback: usar localhost para web/android
     if (Platform.OS === 'web' || Platform.OS === 'android') {
+      console.log('🔗 Usando localhost para desenvolvimento');
       return 'http://localhost:3000/api';
     }
     
     // Para iOS sem hostUri, tentar usar um IP comum
-    // Você pode substituir pelo IP da sua máquina se necessário
     console.warn('⚠️ Não foi possível detectar o IP automaticamente. Usando fallback.');
     return 'http://localhost:3000/api';
   }
 
-  // Produção: usar URL de produção
-  return 'https://api.seudominio.com/api';
+  // PRIORIDADE 3: Produção - variável de ambiente obrigatória
+  throw new Error(
+    'EXPO_PUBLIC_API_URL não está configurada. ' +
+    'Configure a variável de ambiente com a URL do seu backend na nuvem. ' +
+    'Exemplo: EXPO_PUBLIC_API_URL=https://ironmindback-production.up.railway.app/api'
+  );
 }
 
-const API_BASE_URL = getApiBaseUrl();
+// Calcular a URL base uma vez e logar para debug
+const API_BASE_URL = (() => {
+  const url = `${getApiBaseUrl()}/api`;
+  console.log('✅ API_BASE_URL final:', url);
+  console.log('✅ Tipo:', typeof url);
+  console.log('✅ Tem protocolo?', url.startsWith('http://') || url.startsWith('https://'));
+  return url;
+})();
 
 // Chaves do AsyncStorage
 const TOKEN_KEY = '@gym_tracker_token';
@@ -77,7 +102,11 @@ async function apiRequest<T>(
     },
   };
 
-  const url = `${API_BASE_URL}${endpoint}`;
+  // Garantir que o endpoint comece com /
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${normalizedEndpoint}`;
+  
+  console.log('🌐 Fazendo requisição para:', url);
   const response = await fetch(url, config);
 
   // Tratar erro 401 (não autenticado)
@@ -85,7 +114,7 @@ async function apiRequest<T>(
     await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
     // Redirecionar para login se houver router disponível
     if (router) {
-      router.replace('/(tabs)');
+      router.replace('/login');
     }
     throw new ApiError('Sessão expirada. Faça login novamente.', 401);
   }
