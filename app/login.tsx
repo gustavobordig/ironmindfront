@@ -17,14 +17,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 import { ApiError } from '@/services/api';
+import GoogleLoginButton from '@/components/molecules/GoogleLoginButton';
+import Divider from '@/components/molecules/Divider';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -67,6 +70,35 @@ export default function LoginScreen() {
       }
       
       setIsLoading(false);
+      showToast(errorMessage, 'error');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+
+    try {
+      await loginWithGoogle();
+      showToast('Login com Google realizado com sucesso!', 'success');
+      await new Promise(resolve => setTimeout(resolve, 2300));
+      setIsGoogleLoading(false);
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      
+      let errorMessage = 'Erro ao fazer login com Google. Tente novamente.';
+      
+      if (err.message?.includes('cancelado')) {
+        errorMessage = 'Login cancelado';
+      } else if (err.message?.includes('Client ID')) {
+        errorMessage = 'Configuração do Google não encontrada. Entre em contato com o suporte.';
+      } else if (err instanceof ApiError) {
+        errorMessage = err.message || errorMessage;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setIsGoogleLoading(false);
       showToast(errorMessage, 'error');
     }
   };
@@ -136,9 +168,9 @@ export default function LoginScreen() {
               </View>
 
               <TouchableOpacity
-                style={[styles.button, isLoading && styles.buttonDisabled]}
+                style={[styles.button, (isLoading || isGoogleLoading) && styles.buttonDisabled]}
                 onPress={handleLogin}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
               >
                 {isLoading ? (
                   <ActivityIndicator color={colors.textOnPrimary} />
@@ -146,13 +178,21 @@ export default function LoginScreen() {
                   <Text style={styles.buttonText}>Entrar</Text>
                 )}
               </TouchableOpacity>
+
+              <Divider />
+
+              <GoogleLoginButton
+                onPress={handleGoogleLogin}
+                isLoading={isGoogleLoading}
+                disabled={isLoading}
+              />
             </View>
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Não tem uma conta? </Text>
               <TouchableOpacity
                 onPress={() => router.push('/register')}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
               >
                 <Text style={styles.footerLink}>Cadastre-se</Text>
               </TouchableOpacity>

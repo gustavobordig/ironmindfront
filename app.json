@@ -1,56 +1,71 @@
 {
-    "expo": {
-      "name": "Gym Tracker App",
-      "slug": "gym-tracker-app-go3wkdc",
-      "version": "1.0.0",
-      "orientation": "portrait",
-      "icon": "./assets/images/icon.png",
-      "scheme": "gym-tracker-app",
-      "userInterfaceStyle": "automatic",
-      "newArchEnabled": true,
-      "splash": {
-        "image": "./assets/images/splash-icon.png",
-        "resizeMode": "contain",
+  "expo": {
+    "name": "Gym Tracker App",
+    "slug": "gym-tracker-app-go3wkdc",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "gym-tracker-app",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.gym-tracker.gym-tracker-app-go3wkdc"
+    },
+    "android": {
+      "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "ios": {
-        "supportsTablet": true,
-        "bundleIdentifier": "app.gym-tracker.gym-tracker-app-go3wkdc"
-      },
-      "android": {
-        "adaptiveIcon": {
-          "foregroundImage": "./assets/images/adaptive-icon.png",
-          "backgroundColor": "#ffffff"
-        },
-        "package": "app.gym-tracker.gym_tracker_app_go3wkdc",
-        "permissions": [
-          "android.permission.VIBRATE",
-          "android.permission.POST_NOTIFICATIONS"
-        ]
-      },
-      "web": {
-        "favicon": "./assets/images/favicon.png"
-      },
-      "plugins": [
-        [
-          "expo-router",
-          {
-            "origin": "https://gym-tracker.com/"
-          }
-        ],
-        "expo-font",
-        "expo-web-browser",
-        [
-          "expo-notifications",
-          {
-            "icon": "./assets/images/icon.png",
-            "color": "#ffffff",
-            "sounds": []
-          }
-        ]
+      "package": "com.gustavcodes.gymtrackerappgo3wkdc",
+      "permissions": [
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://gym-tracker.com/"
+        }
       ],
-      "experiments": {
-        "typedRoutes": true
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "color": "#ffffff",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "googleWebClientId": "SEU_GOOGLE_WEB_CLIENT_ID_AQUI",
+      "googleAndroidClientId": "SEU_GOOGLE_ANDROID_CLIENT_ID_AQUI",
+      "googleIosClientId": "SEU_GOOGLE_IOS_CLIENT_ID_AQUI",
+      "router": {
+        "origin": "https://gym-tracker.com/"
+      },
+      "eas": {
+        "projectId": "ab824f58-646c-4e24-b642-5b19e7b21adc"
       }
     }
   }
+}

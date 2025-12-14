@@ -80,6 +80,18 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    try {
+      const response = await authService.loginWithGoogle();
+      setUser(response.user);
+      setIsAuthenticated(true);
+      return response;
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      throw error;
+    }
+  }, []);
+
   return {
     user,
     isLoading,
@@ -87,6 +99,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     login,
     register,
     logout,
+    loginWithGoogle,
     checkAuth,
   };
 });

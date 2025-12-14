@@ -12,6 +12,7 @@ import type {
   RefreshTokenResponse,
   User,
 } from '@/types/api';
+import * as googleAuth from './google-auth.service';
 
 /**
  * Registra um novo usuário
@@ -29,6 +30,33 @@ export async function login(data: LoginData): Promise<AuthResponse> {
   const response = await apiPost<AuthResponse>('/auth/login', data);
   await saveAuthTokens(response.token, response.refreshToken, response.user);
   return response;
+}
+
+/**
+ * Faz login com Google
+ */
+export async function loginWithGoogle(): Promise<AuthResponse> {
+  try {
+    // 1. Autenticar com Google
+    const googleResult = await googleAuth.signInWithGoogle();
+
+    // 2. Enviar token para o backend
+    const backendResponse = await googleAuth.authenticateWithBackend(
+      googleResult.accessToken
+    );
+
+    // 3. Salvar tokens da aplicação
+    await saveAuthTokens(
+      backendResponse.token,
+      backendResponse.refreshToken,
+      backendResponse.user
+    );
+
+    return backendResponse;
+  } catch (error: any) {
+    console.error('Erro no loginWithGoogle:', error);
+    throw error;
+  }
 }
 
 /**
