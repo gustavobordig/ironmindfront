@@ -16,56 +16,127 @@ const discovery = {
 };
 
 /**
+ * Lê o Client ID do arquivo plist do Google Services (síncrono)
+ * Extrai do caminho do arquivo configurado no app.json
+ */
+function getClientIdFromPlistSync(): string | null {
+  try {
+    const plistPath = Constants.expoConfig?.ios?.googleServicesFile;
+    if (!plistPath) {
+      return null;
+    }
+    
+    // Extrair Client ID do nome do arquivo plist
+    // Formato: client_132825076670-6f9khmsh89kkskk5at34gtijjg580fgs.apps.googleusercontent.com.plist
+    // Ou: ./client_132825076670-6f9khmsh89kkskk5at34gtijjg580fgs.apps.googleusercontent.com.plist
+    const fileName = plistPath.split('/').pop() || plistPath;
+    const clientIdMatch = fileName.match(/client_([^\.]+)\.apps\.googleusercontent\.com/);
+    if (clientIdMatch && clientIdMatch[1]) {
+      const clientId = `${clientIdMatch[1]}.apps.googleusercontent.com`;
+      if (__DEV__) {
+        console.log('[Google Auth] Client ID extraído do plist:', clientId.substring(0, 20) + '...');
+      }
+      return clientId;
+    }
+    
+    return null;
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[Google Auth] Erro ao extrair Client ID do plist:', error);
+    }
+    return null;
+  }
+}
+
+/**
  * Obtém o Client ID do Google baseado na plataforma
- * Prioridade: Variáveis de ambiente (EXPO_PUBLIC_*) > app.json (extra)
+ * Prioridade: Web Client ID (sempre priorizado) > Client ID específico da plataforma > app.json > plist file
  */
 const getGoogleClientId = (): string => {
-  // PRIORIDADE 1: Variáveis de ambiente (EXPO_PUBLIC_*)
-  // Para Expo Go, Web Client ID funciona melhor que iOS/Android Client IDs
-  const forceWebClientId = process.env.EXPO_PUBLIC_GOOGLE_FORCE_WEB_CLIENT_ID === 'true';
-  
-  if (forceWebClientId) {
-    const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-    if (webClientId) {
-      if (__DEV__) {
-        console.log('[Google Auth] Usando Web Client ID (forçado via env)');
-      }
-      return webClientId.trim();
-    }
-  }
-  
-  if (Platform.OS === 'ios') {
-    const envClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-    if (envClientId) {
-      return envClientId.trim();
-    }
-  }
-
-  if (Platform.OS === 'android') {
-    const envClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-    if (envClientId) {
-      return envClientId.trim();
-    }
-  }
-
-  // Fallback para Web Client ID de variável de ambiente
+  // PRIORIDADE 1: Web Client ID (configurado com http://localhost:8081/auth)
   const envWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
   if (envWebClientId) {
+    if (__DEV__) {
+      console.log('[Google Auth] ✅ Usando Web Client ID (priorizado - aceita redirect URIs HTTP)');
+    }
     return envWebClientId.trim();
   }
 
-  // PRIORIDADE 2: app.json (extra) - fallback
-  const extra = Constants.expoConfig?.extra;
-
+  // PRIORIDADE 2: Client ID específico da plataforma (fallback)
   if (Platform.OS === 'ios') {
-    return extra?.googleIosClientId || extra?.googleWebClientId || '';
+    const envClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+    if (envClientId) {
+      if (__DEV__) {
+        console.log('[Google Auth] Usando iOS Client ID (fallback)');
+      }
+      return envClientId.trim();
+    }
   }
 
   if (Platform.OS === 'android') {
-    return extra?.googleAndroidClientId || extra?.googleWebClientId || '';
+    const envClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+    if (envClientId) {
+      if (__DEV__) {
+        console.log('[Google Auth] Usando Android Client ID (fallback)');
+      }
+      return envClientId.trim();
+    }
   }
 
-  return extra?.googleWebClientId || '';
+  // PRIORIDADE 3: app.json (extra) - fallback
+  const extra = Constants.expoConfig?.extra;
+
+  // Tentar Web Client ID do app.json primeiro
+  if (extra?.googleWebClientId) {
+    if (__DEV__) {
+      console.log('[Google Auth] Usando Web Client ID do app.json (fallback)');
+    }
+    return extra.googleWebClientId;
+  }
+
+  if (Platform.OS === 'ios') {
+    const appJsonClientId = extra?.googleIosClientId;
+    if (appJsonClientId) {
+      if (__DEV__) {
+        console.log('[Google Auth] Usando iOS Client ID do app.json (fallback)');
+      }
+      return appJsonClientId;
+    }
+    
+    // PRIORIDADE 4: Tentar extrair do arquivo plist (apenas iOS)
+    const plistClientId = getClientIdFromPlistSync();
+    if (plistClientId) {
+      if (__DEV__) {
+        console.log('[Google Auth] Usando Client ID do arquivo plist (fallback)');
+      }
+      return plistClientId;
+    }
+  }
+
+  if (Platform.OS === 'android') {
+    const appJsonClientId = extra?.googleAndroidClientId;
+    if (appJsonClientId) {
+      if (__DEV__) {
+        console.log('[Google Auth] Usando Android Client ID do app.json (fallback)');
+      }
+      return appJsonClientId;
+    }
+  }
+
+  return '';
+};
+
+
+/**
+ * Obtém o identificador da plataforma (Package Name no Android, Bundle ID no iOS)
+ */
+const getPlatformIdentifier = (): string => {
+  if (Platform.OS === 'android') {
+    return Constants.expoConfig?.android?.package || 'com.gustavcodes.gymtrackerappgo3wkdc';
+  } else if (Platform.OS === 'ios') {
+    return Constants.expoConfig?.ios?.bundleIdentifier || 'app.gym-tracker.gym-tracker-app-go3wkdc';
+  }
+  return 'N/A';
 };
 
 /**
@@ -137,44 +208,55 @@ export async function signInWithGoogle(): Promise<GoogleAuthResult> {
     // Validar Client ID
     validateClientId(clientId);
 
-    // Criar requisição de autenticação
-    // No Expo Go iOS, pode ser necessário usar URL HTTP em vez de scheme customizado
-    const redirectUri = makeRedirectUri({
-      scheme: 'gym-tracker-app',
-      path: 'auth',
-      preferLocalhost: false,
-    });
-    
-    // Determinar o redirect URI final
-    let finalRedirectUri: string;
-    
-    // Se estiver usando exp:// (Expo Go), tentar usar scheme customizado primeiro
-    if (redirectUri.startsWith('exp://')) {
-      // No Expo Go, tentar usar o scheme customizado
-      finalRedirectUri = 'gym-tracker-app://auth';
-      
-      if (__DEV__) {
-        console.log('[Google Auth] Expo Go detectado, usando scheme customizado');
+    // Detectar se está rodando no Expo Go
+    const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+    let redirectUri: string;
+
+    if (isExpoGo) {
+      // No Expo Go, usar o IP do Metro Bundler ou localhost
+      const debuggerHost = Constants.expoConfig?.hostUri;
+      if (debuggerHost) {
+        const ip = debuggerHost.split(':')[0];
+        redirectUri = `http://${ip}:8081/auth`;
+        if (__DEV__) {
+          console.log('[Google Auth] Expo Go detectado, usando IP do Metro:', redirectUri);
+        }
+      } else {
+        redirectUri = 'http://localhost:8081/auth';
+        if (__DEV__) {
+          console.log('[Google Auth] Expo Go detectado, usando localhost:', redirectUri);
+        }
       }
     } else {
-      finalRedirectUri = redirectUri;
+      // Em development builds, usar makeRedirectUri
+      redirectUri = makeRedirectUri({
+        scheme: 'gym-tracker-app',
+        path: 'auth',
+        preferLocalhost: true,
+      });
     }
 
     // Log para debug (apenas em desenvolvimento)
     if (__DEV__) {
+      const platformIdentifier = getPlatformIdentifier();
+      const isWebClientId = clientId === process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 
+                           clientId === Constants.expoConfig?.extra?.googleWebClientId;
+      
       console.log('[Google Auth] Client ID:', clientId.substring(0, 20) + '...');
-      console.log('[Google Auth] Client ID completo:', clientId);
-      console.log('[Google Auth] Redirect URI original:', redirectUri);
-      console.log('[Google Auth] Redirect URI final:', finalRedirectUri);
-      console.log('[Google Auth] Platform:', Platform.OS);
-      console.log('[Google Auth] Bundle ID esperado:', 'app.gym-tracker.gym-tracker-app-go3wkdc');
+      if (isWebClientId) {
+        console.log('[Google Auth] Web Client ID: usando URL HTTP válida');
+      }
+      console.log('[Google Auth] ✅ Redirect URI gerado:', redirectUri);
+      console.log('[Google Auth] ✅ ' + (Platform.OS === 'android' ? 'Package Name' : 'Bundle ID') + 
+                  ' que será validado pelo Google:', platformIdentifier);
     }
 
     const request = new AuthRequest({
       clientId,
       scopes: ['openid', 'profile', 'email'],
       responseType: ResponseType.Token,
-      redirectUri: finalRedirectUri,
+      redirectUri: redirectUri,
       usePKCE: false,
     });
 
@@ -183,15 +265,10 @@ export async function signInWithGoogle(): Promise<GoogleAuthResult> {
 
     if (__DEV__) {
       console.log('[Google Auth] Auth URL gerada com sucesso');
-      // Log da URL completa para debug (remover dados sensíveis antes de compartilhar)
-      const urlObj = new URL(authUrl);
-      console.log('[Google Auth] Auth URL (sem parâmetros sensíveis):', 
-        `${urlObj.origin}${urlObj.pathname}?client_id=${urlObj.searchParams.get('client_id')?.substring(0, 20)}...&redirect_uri=${urlObj.searchParams.get('redirect_uri')}&response_type=${urlObj.searchParams.get('response_type')}&scope=${urlObj.searchParams.get('scope')}`
-      );
     }
 
     // Abrir navegador para autenticação
-    const result = await WebBrowser.openAuthSessionAsync(authUrl, finalRedirectUri);
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
     if (__DEV__) {
       console.log('[Google Auth] Result type:', result.type);
@@ -220,7 +297,7 @@ export async function signInWithGoogle(): Promise<GoogleAuthResult> {
         if (error === 'redirect_uri_mismatch') {
           errorMessage +=
             '\n\nO redirect URI não está autorizado no Google Cloud Console. ' +
-            `Adicione "${finalRedirectUri}" nas URIs de redirecionamento autorizadas do seu Client ID.`;
+            `Adicione "${redirectUri}" nas URIs de redirecionamento autorizadas do seu Client ID.`;
         } else if (error === 'invalid_client') {
           errorMessage +=
             '\n\nClient ID inválido. Verifique se o Client ID está correto no app.json e se corresponde ao tipo correto (Android/iOS/Web).';

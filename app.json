@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.gym-tracker.gym-tracker-app-go3wkdc"
+      "bundleIdentifier": "app.gym-tracker.gym-tracker-app-go3wkdc",
+      "googleServicesFile": "./client_132825076670-6f9khmsh89kkskk5at34gtijjg580fgs.apps.googleusercontent.com.plist"
     },
     "android": {
       "adaptiveIcon": {
