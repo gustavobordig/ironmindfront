@@ -1,11 +1,15 @@
 import { Slot, useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
+import { View } from 'react-native';
 import { WorkoutProvider } from '@/contexts/WorkoutContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ToastProvider, useToast } from '@/contexts/ToastContext';
 import { requestNotificationPermissions } from '@/services/notifications';
+import Toast from '@/components/atoms/Toast';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { toastMessage, toastVisible, toastType, hideToast } = useToast();
   const segments = useSegments();
   const router = useRouter();
 
@@ -28,15 +32,28 @@ function RootLayoutNav() {
     }
   }, [isAuthenticated, isLoading, segments]);
 
-  return <Slot />;
+  return (
+    <View style={{ flex: 1 }}>
+      <Slot />
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        visible={toastVisible}
+        onHide={hideToast}
+        duration={toastType === 'success' ? 2500 : 3000}
+      />
+    </View>
+  );
 }
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <WorkoutProvider>
-        <RootLayoutNav />
-      </WorkoutProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <WorkoutProvider>
+          <RootLayoutNav />
+        </WorkoutProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 }

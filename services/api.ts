@@ -109,27 +109,38 @@ async function apiRequest<T>(
   console.log('🌐 Fazendo requisição para:', url);
   const response = await fetch(url, config);
 
-  // Tratar erro 401 (não autenticado)
-  if (response.status === 401) {
-    await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
-    // Redirecionar para login se houver router disponível
-    if (router) {
-      router.replace('/login');
-    }
-    throw new ApiError('Sessão expirada. Faça login novamente.', 401);
-  }
-
-  // Tratar outros erros
+  // Tratar erros de resposta
   if (!response.ok) {
     let errorMessage = 'Erro na requisição';
     let errorData = null;
 
+    // Ler a resposta JSON para pegar a mensagem do backend
     try {
       const errorJson = await response.json();
       errorMessage = errorJson.message || errorMessage;
       errorData = errorJson;
     } catch {
       // Se não conseguir parsear o JSON, usar mensagem padrão
+    }
+
+    // Tratar erro 401 (não autenticado)
+    if (response.status === 401) {
+      // Verificar se é um endpoint de autenticação (login/register)
+      // Nesses casos, não limpar tokens nem redirecionar
+      const isAuthEndpoint = normalizedEndpoint.includes('/auth/login') || normalizedEndpoint.includes('/auth/register');
+      
+      // Só limpar tokens e redirecionar se for uma requisição autenticada que falhou
+      // (ou seja, se havia um token mas a sessão expirou)
+      if (!isAuthEndpoint && token) {
+        await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
+        // Redirecionar para login se houver router disponível
+        if (router) {
+          router.replace('/login');
+        }
+        // Se não for endpoint de auth, usar mensagem de sessão expirada
+        errorMessage = 'Sessão expirada. Faça login novamente.';
+      }
+      // Se for endpoint de auth, manter a mensagem do backend (já foi extraída acima)
     }
 
     throw new ApiError(errorMessage, response.status, errorData);
