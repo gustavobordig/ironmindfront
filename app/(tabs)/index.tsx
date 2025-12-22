@@ -8,7 +8,9 @@ import { LogOut } from 'lucide-react-native';
 import MonthCalendar from '@/components/organisms/MonthCalendar';
 import TodayRoutineCard from '@/components/molecules/TodayRoutineCard';
 import ActiveWorkoutBanner from '@/components/organisms/ActiveWorkoutBanner';
+import WeeklyReportCard from '@/components/molecules/WeeklyReportCard';
 import { colors } from '@/constants/colors';
+import { useWeeklyReport } from '@/hooks/useWeeklyReport';
 
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -16,6 +18,7 @@ export default function HomeScreen() {
   const { getTodayRoutine, startWorkout, workoutStatuses, getWorkoutStatusForDate, activeWorkout, loadData } = useWorkout();
   const { user, logout } = useAuth();
   const insets = useSafeAreaInsets();
+  const { report } = useWeeklyReport();
 
   const todayRoutine = getTodayRoutine();
   const today = new Date();
@@ -100,6 +103,15 @@ export default function HomeScreen() {
 
         <View style={styles.content}>
           <MonthCalendar workoutStatuses={workoutStatuses} />
+          
+          {report && (
+            <View style={styles.section}>
+              <WeeklyReportCard
+                onPress={() => router.push('/weekly-report')}
+                periodLabel={report.period.label}
+              />
+            </View>
+          )}
           
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Treino de Hoje</Text>

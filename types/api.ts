@@ -236,3 +236,18 @@ export interface RefreshTokenResponse {
   refreshToken: string;
 }
 
+// Weekly Report - re-export dos tipos específicos
+export type {
+  WeeklyReportDTO,
+  WeeklyReportPeriod,
+  WeeklyReportFrequency,
+  WeeklyReportVolume,
+  WeeklyReportMuscleHighlight,
+  WeeklyReportTopExercise,
+  WeeklyReportPRs,
+  WeeklyReportInsight,
+  ComparisonStatus,
+  MuscleGroup as WeeklyReportMuscleGroup,
+  InsightKey,
+} from './weekly-report';
+

@@ -227,7 +227,7 @@ export default function HistoryScreen() {
                         <Text style={styles.workoutMetaDot}>•</Text>
                         <View style={styles.prBadge}>
                           <Trophy size={12} color="#f59e0b" />
-                          <Text style={styles.prBadgeText}>{prCount} PRs</Text>
+                          <Text style={styles.prBadgeText}>{prCount} PRs batidos</Text>
                         </View>
                       </>
                     )}

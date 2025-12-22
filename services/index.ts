@@ -8,5 +8,6 @@ export * from './exercises.service';
 export * from './routines.service';
 export * from './workouts.service';
 export * from './stats.service';
+export * from './weekly-report.service';
 export * from './converters';
 
