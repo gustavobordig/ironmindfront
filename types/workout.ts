@@ -55,6 +55,14 @@ export interface Workout {
   completedAt?: Date;
 }
 
+export interface Goal {
+  id: string;
+  targetKg: number;
+  bestKg: number;
+  nextMilestoneKg: number | null;
+  status: 'active' | 'paused';
+}
+
 export interface RoutineExercise {
   id: string;
   exerciseId: string;
@@ -64,6 +72,8 @@ export interface RoutineExercise {
   targetWeight?: number;
   restTime: number;
   notes?: string;
+  hasGoal?: boolean;  // ⭐ NOVA PROPRIEDADE
+  goal?: Goal | null; // ⭐ NOVA PROPRIEDADE
 }
 
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;

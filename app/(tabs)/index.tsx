@@ -7,13 +7,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LogOut } from 'lucide-react-native';
 import MonthCalendar from '@/components/organisms/MonthCalendar';
 import TodayRoutineCard from '@/components/molecules/TodayRoutineCard';
+import TodayGoalCard from '@/components/molecules/TodayGoalCard';
 import ActiveWorkoutBanner from '@/components/organisms/ActiveWorkoutBanner';
 import { colors } from '@/constants/colors';
+import AppBackground from '@/components/organisms/AppBackground';
 
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
 export default function HomeScreen() {
-  const { getTodayRoutine, startWorkout, workoutStatuses, getWorkoutStatusForDate, activeWorkout, loadData } = useWorkout();
+  const { getTodayRoutine, getTodayGoal, startWorkout, workoutStatuses, getWorkoutStatusForDate, activeWorkout, loadData } = useWorkout();
   const { user, logout } = useAuth();
   const insets = useSafeAreaInsets();
 
@@ -65,19 +67,20 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-      >
+    <AppBackground>
+      <View style={styles.container}>
+        <ScrollView 
+          style={styles.scrollView} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+        >
         <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
           <View style={styles.headerTop}>
             <View style={styles.headerText}>
@@ -102,26 +105,30 @@ export default function HomeScreen() {
           <MonthCalendar workoutStatuses={workoutStatuses} />
           
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Treino de Hoje</Text>
+            <Text style={styles.sectionTitle}>Treino de hoje</Text>
             <TodayRoutineCard
-              routine={todayRoutine}
-              dayOfWeek={dayOfWeek}
-              status={todayStatus}
               onStartWorkout={handleStartWorkout}
               onContinueWorkout={handleStartWorkout}
             />
           </View>
+          
+          {getTodayGoal() && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Metas de hoje</Text>
+              <TodayGoalCard />
+            </View>
+          )}
         </View>
       </ScrollView>
       <ActiveWorkoutBanner />
     </View>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -162,6 +169,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700' as const,
     color: colors.textPrimary,
-    marginBottom: 16,
+    marginBottom: 12,
+    marginLeft: 4,
   },
 });

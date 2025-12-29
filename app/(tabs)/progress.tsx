@@ -14,6 +14,7 @@ import { MuscleGroup, Exercise } from '@/types/workout';
 import { colors } from '@/constants/colors';
 import ActiveWorkoutBanner from '@/components/organisms/ActiveWorkoutBanner';
 import SimpleLineChart from '@/components/organisms/SimpleLineChart';
+import AppBackground from '@/components/organisms/AppBackground';
 
 const MUSCLE_GROUPS: { label: string; value: MuscleGroup }[] = [
   { label: 'Peito', value: 'chest' },
@@ -213,7 +214,8 @@ export default function ProgressScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <AppBackground>
+      <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <Text style={styles.title}>Progresso</Text>
       </View>
@@ -566,13 +568,13 @@ export default function ProgressScreen() {
 
       <ActiveWorkoutBanner />
     </View>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     padding: 20,

@@ -6,17 +6,26 @@ import { colors } from "@/constants/colors";
 export default function TabLayout() {
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopWidth: 1,
-          borderTopColor: colors.textSecondary + '20',
-        },
-      }}
-    >
+        screenOptions={{
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textSecondary,
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: 'transparent',
+          },
+          sceneContainerStyle: {
+            backgroundColor: 'transparent',
+          },
+          tabBarStyle: {
+            backgroundColor: colors.surface,
+            borderTopWidth: 1,
+            borderTopColor: colors.textSecondary + '20',
+          },
+        }}
+        sceneStyle={{
+          backgroundColor: 'transparent',
+        }}
+      >
       <Tabs.Screen
         name="index"
         options={{

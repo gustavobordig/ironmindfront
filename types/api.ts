@@ -68,6 +68,15 @@ export interface ExercisePagination {
   };
 }
 
+// Goal
+export interface Goal {
+  id: string;
+  targetKg: number;
+  bestKg: number;
+  nextMilestoneKg: number | null;
+  status: 'active' | 'paused';
+}
+
 // Routine
 export interface RoutineExercise {
   id: string;
@@ -78,6 +87,8 @@ export interface RoutineExercise {
   targetWeight?: number;
   restTime: number;
   notes?: string;
+  hasGoal?: boolean;  // ⭐ NOVA PROPRIEDADE
+  goal?: Goal | null; // ⭐ NOVA PROPRIEDADE
 }
 
 export interface Routine {

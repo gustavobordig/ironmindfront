@@ -1,6 +1,6 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useCallback, useEffect, useState, useMemo } from 'react';
-import { Workout, WorkoutExercise, WorkoutSet, Exercise, Routine, WorkoutStatus, DayOfWeek } from '@/types/workout';
+import { Workout, WorkoutExercise, WorkoutSet, Exercise, Routine, WorkoutStatus, DayOfWeek, Goal } from '@/types/workout';
 import { DEFAULT_EXERCISES } from '@/constants/exercises';
 import * as workoutsService from '@/services/workouts.service';
 import * as routinesService from '@/services/routines.service';
@@ -307,6 +307,23 @@ export const [WorkoutProvider, useWorkout] = createContextHook(() => {
     const today = new Date().getDay() as DayOfWeek;
     return getRoutineForDay(today);
   }, [getRoutineForDay]);
+
+  const getTodayGoal = useCallback((): { exercise: Exercise; goal: Goal } | null => {
+    const todayRoutine = getTodayRoutine();
+    if (!todayRoutine) return null;
+
+    // Encontrar o primeiro exercício com meta ativa
+    const exerciseWithGoal = todayRoutine.exercises.find(
+      ex => ex.hasGoal && ex.goal && ex.goal.status === 'active'
+    );
+
+    if (!exerciseWithGoal || !exerciseWithGoal.goal) return null;
+
+    return {
+      exercise: exerciseWithGoal.exercise,
+      goal: exerciseWithGoal.goal,
+    };
+  }, [getTodayRoutine]);
 
   const getWorkoutStatusForDate = useCallback((date: Date): WorkoutStatus | null => {
     const dateKey = getDateKey(date);
@@ -689,6 +706,7 @@ export const [WorkoutProvider, useWorkout] = createContextHook(() => {
     getExerciseHistory,
     getPersonalRecord,
     getTodayRoutine,
+    getTodayGoal,
     getRoutineForDay,
     getWorkoutStatusForDate,
     workoutStatuses,

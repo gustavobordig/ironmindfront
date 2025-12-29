@@ -285,7 +285,12 @@ export default function RoutineDetailsScreen() {
                   onPress={() => toggleExercise(routineEx.id)}
                 >
                   <View style={styles.exerciseHeaderLeft}>
-                    <Text style={styles.exerciseName}>{routineEx.exercise.name}</Text>
+                    <TouchableOpacity
+                      onPress={() => router.push(`/exercise-details?exerciseId=${routineEx.exerciseId}`)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.exerciseName}>{routineEx.exercise.name}</Text>
+                    </TouchableOpacity>
                     <Text style={styles.exerciseMeta}>
                       {routineEx.targetSets} × {routineEx.targetReps} reps •{' '}
                       {routineEx.restTime}s descanso
@@ -415,7 +420,6 @@ export default function RoutineDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
