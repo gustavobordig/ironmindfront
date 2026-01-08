@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 import ActiveWorkoutBanner from '@/components/organisms/ActiveWorkoutBanner';
+import AppBackground from '@/components/organisms/AppBackground';
 
 type PeriodFilter = '7' | '30' | '90' | 'all';
 
@@ -157,7 +158,8 @@ export default function HistoryScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <AppBackground>
+      <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <Text style={styles.title}>Histórico</Text>
       </View>
@@ -348,13 +350,13 @@ export default function HistoryScreen() {
       </ScrollView>
       <ActiveWorkoutBanner />
     </View>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     padding: 20,

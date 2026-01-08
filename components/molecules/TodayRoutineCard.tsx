@@ -1,279 +1,444 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Dumbbell, Clock, Play, CheckCircle, AlertCircle, Coffee } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Dumbbell, Clock, ChevronRight, Play, Activity } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { Routine, WorkoutStatus } from '@/types/workout';
 import { colors } from '@/constants/colors';
+import { useWorkout } from '@/contexts/WorkoutContext';
 
 interface TodayRoutineCardProps {
-  routine: Routine | null;
-  dayOfWeek: string;
-  status: WorkoutStatus | null;
-  onStartWorkout: () => void;
+  onStartWorkout?: () => void;
   onContinueWorkout?: () => void;
 }
 
 const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
-const getStatusInfo = (status: WorkoutStatus | null) => {
-  if (status === 'completed') {
-    return {
-      color: '#22c55e',
-      icon: CheckCircle,
-      text: 'Treino Concluído',
-    };
-  }
-  if (status === 'incomplete') {
-    return {
-      color: '#f97316',
-      icon: AlertCircle,
-      text: 'Treino Incompleto',
-    };
-  }
-  if (status === 'rest') {
-    return {
-      color: '#fbbf24',
-      icon: Coffee,
-      text: 'Dia de Descanso',
-    };
-  }
-  return null;
-};
-
 export default function TodayRoutineCard({
-  routine,
-  dayOfWeek,
-  status,
-  onStartWorkout,
-  onContinueWorkout,
+  onStartWorkout: onStartWorkoutProp,
+  onContinueWorkout: onContinueWorkoutProp,
 }: TodayRoutineCardProps) {
-  const statusInfo = getStatusInfo(status);
+  // Buscar dados dinamicamente do contexto (sempre da API)
+  const { getTodayRoutine, startWorkout, getWorkoutStatusForDate, activeWorkout } = useWorkout();
+  
+  // Sempre usar o dia de hoje
+  const today = new Date();
+  const dayOfWeek = DAY_NAMES[today.getDay()]; // Sempre calcular o dia atual
+  
+  // Sempre buscar a rotina do dia de hoje da API
+  const todayRoutine = getTodayRoutine();
+  const status = getWorkoutStatusForDate(today);
 
-  if (!routine && status === 'rest') {
+  // Se não houver rotina, mostrar estado vazio
+  if (!todayRoutine) {
     return (
-      <View style={styles.card}>
-        <View style={styles.restHeader}>
-          <Coffee size={24} color="#fbbf24" />
-          <Text style={styles.restTitle}>Dia de Descanso</Text>
+      <View style={styles.container}>
+        <View style={styles.body}>
+          <LinearGradient
+            colors={[
+              'rgba(255, 255, 255, 0.10)',
+              'rgba(255, 255, 255, 0.06)',
+              'rgba(0, 0, 0, 0.20)',
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.bodyGradient}
+          >
+            <View style={styles.emptyState}>
+              <Dumbbell size={32} color="rgba(255, 255, 255, 0.40)" />
+              <Text style={styles.emptyStateText}>Nenhum treino programado para hoje</Text>
+              <Text style={styles.emptyStateSubtext}>
+                Configure uma rotina para {dayOfWeek.toLowerCase()} nas suas rotinas
+              </Text>
+            </View>
+          </LinearGradient>
         </View>
-        <Text style={styles.restSubtitle}>Aproveite para recuperar!</Text>
+        
+        {/* Frame - overlay cinza transparente */}
+        <View style={styles.frameOverlay} pointerEvents="none">
+          {/* Header Row - dia da semana + filete - dentro do frame */}
+          <View style={styles.headerRowFrame}>
+            <View style={styles.filete} />
+            <Text style={styles.headerText}>{dayOfWeek.toUpperCase()}</Text>
+          </View>
+          
+          {/* Bordas cinza transparente */}
+          <View style={styles.frameBorderTop} />
+          <View style={styles.frameBorderBottom} />
+          <View style={styles.frameBorderLeft} />
+          <View style={styles.frameBorderRight} />
+          {/* Borda (stroke) */}
+          <View style={styles.frameStroke} />
+        </View>
       </View>
     );
   }
 
-  if (!routine) {
-    return (
-      <View style={styles.card}>
-        <Text style={styles.noRoutineTitle}>Nenhuma rotina programada</Text>
-        <Text style={styles.noRoutineText}>
-          Configure uma rotina para este dia da semana
-        </Text>
-      </View>
-    );
-  }
+  // Calcular metadados
+  const exerciseCount = todayRoutine.exercises.length;
+  const estimatedMinutes = Math.ceil(exerciseCount * 4.5); // ~4.5min por exercício
 
-  const estimatedDuration = routine.exercises.length * 5;
+  // Mostrar apenas os primeiros 3 exercícios na preview
+  const previewExercises = todayRoutine.exercises.slice(0, 3);
+  const remainingCount = exerciseCount - 3;
+
+  // Descrição padrão se não houver
+  const description = todayRoutine.description || 'Treino completo';
+
+  const handleCardPress = () => {
+    // Navegar para detalhes da rotina
+    if (todayRoutine.id) {
+      router.push(`/routine-details?id=${todayRoutine.id}`);
+    }
+  };
+
+  const handleStartWorkout = async () => {
+    // Se já existe um treino ativo, apenas redirecionar
+    if (activeWorkout) {
+      router.push('/workout');
+      return;
+    }
+
+    // Se foi passada uma função customizada, usar ela
+    if (onStartWorkoutProp) {
+      onStartWorkoutProp();
+      return;
+    }
+
+    // Caso contrário, iniciar o treino usando o contexto
+    try {
+      await startWorkout(todayRoutine.name, todayRoutine);
+      router.push('/workout');
+    } catch (error: any) {
+      console.error('Error starting workout:', error);
+      // Se o erro for 409 (treino ativo), redirecionar para a tela de treino
+      if (error?.statusCode === 409 || error?.message?.includes('treino ativo')) {
+        router.push('/workout');
+      }
+    }
+  };
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.dayLabel}>{dayOfWeek.toUpperCase()}</Text>
-          <Text style={styles.routineName}>{routine.name}</Text>
-          {routine.description && (
-            <Text style={styles.routineDescription}>{routine.description}</Text>
+    <View style={styles.container}>
+      {/* Body - glass principal */}
+      <View style={styles.body}>
+        <LinearGradient
+          colors={[
+            'rgba(255, 255, 255, 0.10)',
+            'rgba(255, 255, 255, 0.06)',
+            'rgba(0, 0, 0, 0.20)',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.bodyGradient}
+        >
+          {/* Title Row - ícone + Push A */}
+        <View style={styles.titleRow}>
+          <Dumbbell size={24} color="rgba(255, 255, 255, 0.92)" />
+          <Text style={styles.title}>{todayRoutine.name}</Text>
+        </View>
+
+        {/* Description */}
+        <Text style={styles.description}>{description}</Text>
+
+        {/* Meta Row - 4 exercícios + ~20min + chevron */}
+        <TouchableOpacity
+          style={styles.metaRow}
+          onPress={handleCardPress}
+          activeOpacity={0.7}
+        >
+          <View style={styles.metaLeft}>
+            <View style={styles.metaItem}>
+              <Activity size={16} color="rgba(255, 255, 255, 0.55)" />
+              <Text style={styles.metaText}>{exerciseCount} exercícios</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Clock size={16} color="rgba(255, 255, 255, 0.55)" />
+              <Text style={styles.metaText}>~{estimatedMinutes}min</Text>
+            </View>
+          </View>
+          <ChevronRight size={20} color="rgba(255, 255, 255, 0.45)" />
+        </TouchableOpacity>
+
+        {/* Bullets List - preview de exercícios */}
+        <View style={styles.bulletsList}>
+          {previewExercises.map((routineExercise) => (
+            <View key={routineExercise.id} style={styles.bulletItem}>
+              <Text style={styles.bullet}>•</Text>
+              <Text style={styles.bulletText}>
+                {routineExercise.exercise.name}
+              </Text>
+            </View>
+          ))}
+          {remainingCount > 0 && (
+            <View style={styles.bulletItem}>
+              <Text style={styles.bulletMore}>•</Text>
+              <Text style={styles.bulletTextMore}>
+                + {remainingCount} {remainingCount === 1 ? 'mais' : 'mais'}
+              </Text>
+            </View>
           )}
         </View>
-        {statusInfo && (
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '20' }]}>
-            <statusInfo.icon size={16} color={statusInfo.color} />
-          </View>
-        )}
-      </View>
 
-      <View style={styles.stats}>
-        <View style={styles.stat}>
-          <Dumbbell size={16} color="#6b7280" />
-          <Text style={styles.statText}>{routine.exercises.length} exercícios</Text>
-        </View>
-        <View style={styles.stat}>
-          <Clock size={16} color="#6b7280" />
-          <Text style={styles.statText}>~{estimatedDuration}min</Text>
-        </View>
-      </View>
-
-      <View style={styles.exercisesPreview}>
-        {routine.exercises.slice(0, 3).map((ex, index) => (
-          <Text key={ex.id} style={styles.exerciseItem}>
-            • {ex.exercise.name}
-          </Text>
-        ))}
-        {routine.exercises.length > 3 && (
-          <Text style={styles.exerciseMore}>+ {routine.exercises.length - 3} mais</Text>
-        )}
-      </View>
-
-      {status === 'completed' ? (
-        <View style={styles.completedBanner}>
-          <CheckCircle size={20} color="#22c55e" />
-          <Text style={styles.completedText}>Treino Concluído Hoje</Text>
-        </View>
-      ) : status === 'incomplete' ? (
+        {/* CTA Button - Iniciar Treino */}
         <TouchableOpacity
-          style={[styles.button, styles.continueButton]}
-          onPress={onContinueWorkout}
+          style={styles.ctaButton}
+          onPress={handleStartWorkout}
+          activeOpacity={0.8}
         >
-          <Play size={20} color="#fff" fill="#fff" />
-          <Text style={styles.buttonText}>Continuar Treino</Text>
+          <Play size={20} color="rgba(255, 255, 255, 0.92)" fill="rgba(255, 255, 255, 0.92)" />
+          <Text style={styles.ctaButtonText}>Iniciar Treino</Text>
         </TouchableOpacity>
-      ) : (
-        <TouchableOpacity style={styles.button} onPress={onStartWorkout}>
-          <Play size={20} color="#fff" fill="#fff" />
-          <Text style={styles.buttonText}>Iniciar Treino</Text>
-        </TouchableOpacity>
-      )}
+        </LinearGradient>
+      </View>
+      
+      {/* Frame - overlay vidro fumê (apenas nas bordas, não bloqueia o centro) */}
+      <View style={styles.frameOverlay} pointerEvents="none">
+        {/* Header Row - QUARTA + filete - dentro do frame (vidro fumê) */}
+        <View style={styles.headerRowFrame}>
+          <View style={styles.filete} />
+          <Text style={styles.headerText}>{dayOfWeek.toUpperCase()}</Text>
+        </View>
+        
+        {/* Bordas cinza transparente */}
+        <View style={styles.frameBorderTop} />
+        <View style={styles.frameBorderBottom} />
+        <View style={styles.frameBorderLeft} />
+        <View style={styles.frameBorderRight} />
+        {/* Borda (stroke) */}
+        <View style={styles.frameStroke} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+  // Container principal
+  container: {
+    position: 'relative',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.35,
+        shadowRadius: 32,
       },
       android: {
-        elevation: 3,
+        elevation: 12,
       },
     }),
   },
-  header: {
+  // Body - glass principal (card inteiro)
+  body: {
+    borderRadius:13, // Reduzido para encaixar nas bordas
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    overflow: 'hidden',
+    marginTop: 40, // Espaço para o header no frame (aumentado)
+    marginBottom: 24,
+    marginLeft: 24,
+    marginRight: 24,
+  },
+  // Body Gradient - gradiente interno para o glass effect
+  bodyGradient: {
+    padding: 16,
+    borderRadius: 14, // Reduzido para encaixar nas bordas
+  },
+  // Frame Overlay - cinza transparente (apenas nas bordas, não bloqueia o centro)
+  frameOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    zIndex: 1,
+    overflow: 'hidden',
+  },
+  // Header Row dentro do frame
+  headerRowFrame: {
+    position: 'absolute',
+    top: 14,
+    left: 24,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    alignItems: 'center',
+    zIndex: 2,
   },
-  headerLeft: {
-    flex: 1,
+  // Stroke (borda)
+  frameStroke: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)', // Cinza claro transparente
   },
-  dayLabel: {
+  // Bordas cinza transparente (mais escuro, mas ainda mais transparente)
+  frameBorderTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 40, // Aumentado para ser maior que as outras partes
+    backgroundColor: 'rgba(30, 31, 34, 0.40)', // Cinza mais escuro mas ainda mais transparente
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  frameBorderBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 24,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)', // Cinza mais escuro mas ainda mais transparente
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  frameBorderLeft: {
+    position: 'absolute',
+    top: 40, // Ajustado para corresponder à altura aumentada do top
+    left: 0,
+    bottom: 24,
+    width: 24,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)', // Cinza mais escuro mas ainda mais transparente
+  },
+  frameBorderRight: {
+    position: 'absolute',
+    top: 40, // Ajustado para corresponder à altura aumentada do top
+    right: 0,
+    bottom: 24,
+    width: 24,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)', // Cinza mais escuro mas ainda mais transparente
+  },
+  filete: {
+    width: 3,
+    height: 14,
+    borderRadius: 2,
+    backgroundColor: '#FF8A3D',
+    marginRight: 8,
+  },
+  headerText: {
     fontSize: 12,
     fontWeight: '700' as const,
-    color: colors.primary,
-    letterSpacing: 1,
-    marginBottom: 4,
+    color: '#FF8A3D',
   },
-  routineName: {
+  // Title Row
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  title: {
     fontSize: 24,
     fontWeight: '700' as const,
-    color: colors.textPrimary,
-    marginBottom: 4,
+    color: 'rgba(255, 255, 255, 0.92)',
   },
-  routineDescription: {
+  // Description
+  description: {
     fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.70)',
+    marginTop: 6,
+    marginBottom: 12,
   },
-  statusBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 12,
-  },
-  stats: {
+  // Meta Row
+  metaRow: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.textSecondary + '20',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  stat: {
+  metaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  statText: {
+  metaText: {
     fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500' as const,
+    color: 'rgba(255, 255, 255, 0.70)',
   },
-  exercisesPreview: {
+  // Bullets List
+  bulletsList: {
+    marginTop: 12,
     marginBottom: 16,
   },
-  exerciseItem: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    marginBottom: 6,
-    lineHeight: 20,
+  bulletItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  exerciseMore: {
-    fontSize: 13,
-    color: colors.textSecondary,
+  bullet: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.92)',
+    marginRight: 8,
+  },
+  bulletText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.92)',
+  },
+  bulletMore: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.55)',
+    marginRight: 8,
+  },
+  bulletTextMore: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.55)',
     fontStyle: 'italic',
   },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    padding: 16,
+  // CTA Button
+  ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    height: 50,
+    borderRadius: 13,
+    backgroundColor: '#FF8A3D',
     gap: 8,
+    marginTop: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.30,
+        shadowRadius: 22,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
-  continueButton: {
-    backgroundColor: colors.warning,
-  },
-  buttonText: {
+  ctaButtonText: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: colors.textOnPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
   },
-  completedBanner: {
-    flexDirection: 'row',
+  // Empty State
+  emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    padding: 16,
-    backgroundColor: colors.success + '15',
-    borderRadius: 12,
+    paddingVertical: 32,
+    paddingHorizontal: 16,
   },
-  completedText: {
+  emptyStateText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#22c55e',
+    color: 'rgba(255, 255, 255, 0.70)',
+    marginTop: 16,
+    textAlign: 'center',
   },
-  restHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
-  restTitle: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: '#111827',
-  },
-  restSubtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  noRoutineTitle: {
-    fontSize: 20,
-    fontWeight: '600' as const,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  noRoutineText: {
+  emptyStateSubtext: {
     fontSize: 14,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.50)',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
+

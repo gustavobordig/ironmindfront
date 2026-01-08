@@ -16,9 +16,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Exercise, RoutineExercise, DayOfWeek, MuscleGroup, EquipmentType } from '@/types/workout';
 import { colors } from '@/constants/colors';
 import Toast from '@/components/atoms/Toast';
+import AppBackground from '@/components/organisms/AppBackground';
+import HeaderGlass from '@/components/molecules/HeaderGlass';
 
 const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -61,7 +64,7 @@ const formatRestTime = (seconds: number): string => {
   return `${minutes}min ${remainingSeconds}s`;
 };
 
-interface ExerciseWithSets extends Omit<RoutineExercise, 'id' | 'targetSets' | 'targetReps' | 'targetWeight'> {
+interface ExerciseWithSets extends Omit<RoutineExercise, 'id' | 'targetSets' | 'targetReps'> {
   numberOfSets: number;
 }
 
@@ -299,26 +302,18 @@ export default function CreateRoutineScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
-          <X size={24} color={colors.textSecondary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isEditing ? 'Editar Rotina' : isDuplicating ? 'Duplicar Rotina' : 'Nova Rotina'}
-        </Text>
-        <TouchableOpacity 
-          onPress={handleSave} 
-          style={styles.headerButton}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <Text style={styles.saveText}>{isEditing ? 'Salvar' : 'Criar'}</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+    <AppBackground>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <HeaderGlass
+          title={isEditing ? 'Editar Rotina' : isDuplicating ? 'Duplicar Rotina' : 'Nova Rotina'}
+          onBack={() => router.back()}
+          rightAction={{
+            label: isEditing ? 'Salvar' : 'Criar',
+            onPress: handleSave,
+            loading: isSaving,
+            disabled: isSaving,
+          }}
+        />
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -333,26 +328,52 @@ export default function CreateRoutineScreen() {
         >
           <View style={styles.section}>
             <Text style={styles.label}>Nome da Rotina</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Ex: Push A, Pernas, etc."
-              placeholderTextColor="#9ca3af"
-            />
+            <View style={styles.inputContainer}>
+              <LinearGradient
+                colors={[
+                  'rgba(255, 255, 255, 0.05)',
+                  'rgba(255, 255, 255, 0.03)',
+                  'rgba(0, 0, 0, 0.35)',
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.inputGradient}
+              >
+                <TextInput
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Ex: Push A, Pernas, etc."
+                  placeholderTextColor="rgba(255, 255, 255, 0.50)"
+                />
+              </LinearGradient>
+            </View>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.label}>Descrição (opcional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Descreva o foco desta rotina..."
-              placeholderTextColor="#9ca3af"
-              multiline
-              numberOfLines={3}
-            />
+            <View style={styles.inputContainer}>
+              <LinearGradient
+                colors={[
+                  'rgba(255, 255, 255, 0.05)',
+                  'rgba(255, 255, 255, 0.03)',
+                  'rgba(0, 0, 0, 0.35)',
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={[styles.inputGradient, styles.textAreaGradient]}
+              >
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Descreva o foco desta rotina..."
+                  placeholderTextColor="rgba(255, 255, 255, 0.50)"
+                  multiline
+                  numberOfLines={3}
+                />
+              </LinearGradient>
+            </View>
           </View>
 
           <View style={styles.section}>
@@ -386,7 +407,7 @@ export default function CreateRoutineScreen() {
 
           <View style={[styles.section, styles.exercisesSection]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.label}>Exercícios ({exercises.length})</Text>
+              <Text style={styles.labelExercises}>Exercícios ({exercises.length})</Text>
               <TouchableOpacity
                 style={styles.addButton}
                 onPress={() => setShowExerciseModal(true)}
@@ -396,8 +417,27 @@ export default function CreateRoutineScreen() {
             </View>
 
             {exercises.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>Nenhum exercício adicionado</Text>
+              <View style={styles.emptyStateContainer}>
+                <View style={styles.emptyStateCard}>
+                  <LinearGradient
+                    colors={[
+                      'rgba(255, 255, 255, 0.05)',
+                      'rgba(255, 255, 255, 0.03)',
+                      'rgba(0, 0, 0, 0.35)',
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.emptyStateGradient}
+                  >
+                    <Text style={styles.emptyStateText}>Adicione exercícios à rotina</Text>
+                    <TouchableOpacity
+                      style={styles.emptyStateButton}
+                      onPress={() => setShowExerciseModal(true)}
+                    >
+                      <Plus size={32} color="#FF8A3D" />
+                    </TouchableOpacity>
+                  </LinearGradient>
+                </View>
               </View>
             )}
 
@@ -406,89 +446,120 @@ export default function CreateRoutineScreen() {
               
               return (
                 <View key={index} style={styles.exerciseCard}>
-                  <TouchableOpacity
-                    style={[styles.exerciseHeader, !isExpanded && styles.exerciseHeaderCollapsed]}
-                    onPress={() => toggleExerciseExpanded(index)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.exerciseName}>{ex.exercise.name}</Text>
-                    <View style={styles.exerciseHeaderActions}>
-                      <Text style={styles.exerciseSummary}>
-                        {ex.numberOfSets} série{ex.numberOfSets !== 1 ? 's' : ''} • {formatRestTime(ex.restTime)}
-                      </Text>
-                      {isExpanded ? (
-                        <ChevronUp size={20} color={colors.textSecondary} />
-                      ) : (
-                        <ChevronDown size={20} color={colors.textSecondary} />
-                      )}
-                      <TouchableOpacity
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          handleRemoveExercise(index);
-                        }}
-                        style={styles.removeExerciseButton}
-                      >
-                        <Trash2 size={20} color={colors.error} />
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
-
-                  {isExpanded && (
-                    <View style={styles.exerciseExpandedContent}>
-                      <View style={styles.exerciseInputs}>
-                        <View style={styles.inputGroup}>
-                          <Text style={styles.inputLabel}>Descanso</Text>
+                  {/* Body - glass principal */}
+                  <View style={styles.exerciseCardBody}>
+                    <LinearGradient
+                      colors={[
+                        'rgba(255, 255, 255, 0.05)',
+                        'rgba(255, 255, 255, 0.03)',
+                        'rgba(0, 0, 0, 0.35)',
+                      ]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={styles.exerciseCardGradient}
+                    >
+                      <View style={[styles.exerciseHeader, !isExpanded && styles.exerciseHeaderCollapsed]}>
+                        <TouchableOpacity
+                          onPress={() => router.push(`/exercise-details?exerciseId=${ex.exerciseId}`)}
+                          activeOpacity={0.7}
+                          style={styles.exerciseNameContainer}
+                        >
+                          <Text style={styles.exerciseName}>{ex.exercise.name}</Text>
+                        </TouchableOpacity>
+                        <View style={styles.exerciseHeaderActions}>
+                          <Text style={styles.exerciseSummary}>
+                            {ex.numberOfSets} série{ex.numberOfSets !== 1 ? 's' : ''} • {formatRestTime(ex.restTime)}
+                          </Text>
                           <TouchableOpacity
-                            style={styles.restTimeSelector}
-                            onPress={() => setRestTimeConfig(index)}
+                            onPress={() => toggleExerciseExpanded(index)}
+                            activeOpacity={0.7}
                           >
-                            <Clock size={16} color={colors.primary} />
-                            <Text style={styles.restTimeValue}>
-                              {formatRestTime(ex.restTime)}
-                            </Text>
-                            <ChevronDown size={16} color={colors.primary} />
+                            {isExpanded ? (
+                              <ChevronUp size={20} color="rgba(255, 255, 255, 0.70)" />
+                            ) : (
+                              <ChevronDown size={20} color="rgba(255, 255, 255, 0.70)" />
+                            )}
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              handleRemoveExercise(index);
+                            }}
+                            style={styles.removeExerciseButton}
+                          >
+                            <Trash2 size={20} color="#EB5757" />
                           </TouchableOpacity>
                         </View>
                       </View>
 
-                      <View style={styles.setsTable}>
-                        <View style={styles.setsTableHeader}>
-                          <Text style={styles.setsTableHeaderText}>SÉRIES</Text>
-                          <Text style={styles.setsTableCountText}>{ex.numberOfSets} série{ex.numberOfSets !== 1 ? 's' : ''}</Text>
+                      {isExpanded && (
+                        <View style={styles.exerciseExpandedContent}>
+                        <View style={styles.exerciseInputs}>
+                          <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Descanso</Text>
+                            <TouchableOpacity
+                              style={styles.restTimeSelector}
+                              onPress={() => setRestTimeConfig(index)}
+                            >
+                              <Clock size={16} color="#FF8A3D" />
+                              <Text style={styles.restTimeValue}>
+                                {formatRestTime(ex.restTime)}
+                              </Text>
+                              <ChevronDown size={16} color="#FF8A3D" />
+                            </TouchableOpacity>
+                          </View>
                         </View>
 
-                        <View style={styles.setsList}>
-                          {Array.from({ length: ex.numberOfSets }, (_, setIndex) => (
-                            <View key={setIndex} style={styles.setsTableRow}>
-                              <Text style={styles.setsTableRowText}>Série {setIndex + 1}</Text>
-                              {ex.numberOfSets > 1 && (
-                                <TouchableOpacity
-                                  style={styles.removeSetButton}
-                                  onPress={() => handleRemoveSet(index, setIndex)}
-                                >
-                                  <X size={16} color={colors.error} />
-                                </TouchableOpacity>
-                              )}
-                            </View>
-                          ))}
-                        </View>
+                        <View style={styles.setsTable}>
+                          <View style={styles.setsTableHeader}>
+                            <Text style={styles.setsTableHeaderText}>SÉRIES</Text>
+                            <Text style={styles.setsTableCountText}>{ex.numberOfSets} série{ex.numberOfSets !== 1 ? 's' : ''}</Text>
+                          </View>
 
-                        <TouchableOpacity
-                          style={styles.addSetButton}
-                          onPress={() => handleAddSet(index)}
-                        >
-                          <Plus size={20} color={colors.textOnPrimary} />
-                          <Text style={styles.addSetButtonText}>Adicionar Série</Text>
-                        </TouchableOpacity>
+                          <View style={styles.setsList}>
+                            {Array.from({ length: ex.numberOfSets }, (_, setIndex) => (
+                              <View key={setIndex} style={styles.setsTableRow}>
+                                <Text style={styles.setsTableRowText}>Série {setIndex + 1}</Text>
+                                {ex.numberOfSets > 1 && (
+                                  <TouchableOpacity
+                                    style={styles.removeSetButton}
+                                    onPress={() => handleRemoveSet(index, setIndex)}
+                                  >
+                                    <X size={16} color={colors.error} />
+                                  </TouchableOpacity>
+                                )}
+                              </View>
+                            ))}
+                          </View>
+
+                          <TouchableOpacity
+                            style={styles.addSetButton}
+                            onPress={() => handleAddSet(index)}
+                          >
+                            <Plus size={20} color={colors.textOnPrimary} />
+                            <Text style={styles.addSetButtonText}>Adicionar Série</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    )}
+                    </LinearGradient>
+                  </View>
+                  
+                  {/* Frame - overlay cinza transparente */}
+                  <View style={styles.exerciseCardFrame} pointerEvents="none">
+                    <View style={styles.exerciseCardFrameBorderTop} />
+                    <View style={styles.exerciseCardFrameBorderBottom} />
+                    <View style={styles.exerciseCardFrameBorderLeft} />
+                    <View style={styles.exerciseCardFrameBorderRight} />
+                    <View style={styles.exerciseCardFrameStroke} />
+                  </View>
                 </View>
               );
             })}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      </SafeAreaView>
 
       <Modal
         visible={showExerciseModal}
@@ -496,23 +567,35 @@ export default function CreateRoutineScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowExerciseModal(false)}
       >
-        <SafeAreaView style={styles.modalContainer} edges={['top']}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Adicionar Exercício</Text>
-            <TouchableOpacity onPress={() => setShowExerciseModal(false)}>
-              <X size={24} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar exercícios..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor="#9ca3af"
+        <AppBackground>
+          <SafeAreaView style={styles.modalContainer} edges={['top']}>
+            <HeaderGlass
+              title="Adicionar Exercício"
+              onBack={() => setShowExerciseModal(false)}
             />
-          </View>
+
+            <View style={styles.searchContainer}>
+              <View style={styles.searchInputContainer}>
+                <LinearGradient
+                  colors={[
+                    'rgba(255, 255, 255, 0.05)',
+                    'rgba(255, 255, 255, 0.03)',
+                    'rgba(0, 0, 0, 0.35)',
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.searchInputGradient}
+                >
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Buscar exercício"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholderTextColor="rgba(255, 255, 255, 0.50)"
+                  />
+                </LinearGradient>
+              </View>
+            </View>
 
           <View style={styles.filtersContainer}>
             <View style={styles.filterSection}>
@@ -768,21 +851,46 @@ export default function CreateRoutineScreen() {
             </View>
           </View>
 
-          <ScrollView style={styles.exercisesList}>
-            {filteredExercises.map((exercise) => (
-              <TouchableOpacity
-                key={exercise.id}
-                style={styles.exerciseOption}
-                onPress={() => handleAddExercise(exercise)}
-              >
-                <Text style={styles.exerciseOptionName}>{exercise.name}</Text>
-                <Text style={styles.exerciseOptionGroup}>
-                  {exercise.muscleGroup}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </SafeAreaView>
+            <ScrollView style={styles.exercisesList}>
+              {filteredExercises.map((exercise) => (
+                <TouchableOpacity
+                  key={exercise.id}
+                  style={styles.exerciseOptionContainer}
+                  onPress={() => handleAddExercise(exercise)}
+                  activeOpacity={0.7}
+                >
+                  {/* Body - glass principal */}
+                  <View style={styles.exerciseOptionBody}>
+                    <LinearGradient
+                      colors={[
+                        'rgba(255, 255, 255, 0.05)',
+                        'rgba(255, 255, 255, 0.03)',
+                        'rgba(0, 0, 0, 0.35)',
+                      ]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={styles.exerciseOptionGradient}
+                    >
+                      <Text style={styles.exerciseOptionName}>{exercise.name}</Text>
+                      <Text style={styles.exerciseOptionGroup}>
+                        {exercise.muscleGroup}
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                  
+                  {/* Frame - overlay cinza transparente */}
+                  <View style={styles.exerciseOptionFrame} pointerEvents="none">
+                    <View style={styles.exerciseOptionFrameBorderTop} />
+                    <View style={styles.exerciseOptionFrameBorderBottom} />
+                    <View style={styles.exerciseOptionFrameBorderLeft} />
+                    <View style={styles.exerciseOptionFrameBorderRight} />
+                    <View style={styles.exerciseOptionFrameStroke} />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </SafeAreaView>
+        </AppBackground>
       </Modal>
 
       <Modal
@@ -860,37 +968,13 @@ export default function CreateRoutineScreen() {
         onHide={() => setToastVisible(false)}
         duration={toastMessage.includes('sucesso') ? 3000 : 4000}
       />
-    </SafeAreaView>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.textSecondary + '20',
-  },
-  headerButton: {
-    width: 60,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: colors.textPrimary,
-  },
-  saveText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: colors.primary,
   },
   keyboardView: {
     flex: 1,
@@ -917,27 +1001,91 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: colors.textPrimary,
-    marginBottom: 8,
+    color: 'rgba(255, 255, 255, 0.92)',
+    marginBottom: 12,
+  },
+  labelExercises: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: 'rgba(255, 255, 255, 0.92)',
+  },
+  inputContainer: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  inputGradient: {
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  textAreaGradient: {
+    minHeight: 80,
   },
   input: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.textSecondary + '20',
+    color: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: 'transparent',
   },
   textArea: {
-    height: 80,
+    minHeight: 80,
     textAlignVertical: 'top',
   },
   addButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.primaryLight + '30',
+    backgroundColor: 'rgba(255, 138, 61, 0.20)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateContainer: {
+    marginTop: 8,
+  },
+  emptyStateCard: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  emptyStateGradient: {
+    padding: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.70)',
+    marginBottom: 16,
+  },
+  emptyStateButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 138, 61, 0.20)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -947,15 +1095,94 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
   },
   exerciseCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
+    position: 'relative',
+    borderRadius: 20,
     marginBottom: 12,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  // Body - glass principal
+  exerciseCardBody: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    marginTop: 12,
+    marginBottom: 12,
+    marginLeft: 12,
+    marginRight: 12,
+  },
+  exerciseCardGradient: {
+    padding: 16,
+    borderRadius: 13,
+  },
+  // Frame - overlay cinza transparente
+  exerciseCardFrame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    zIndex: 1,
+    overflow: 'hidden',
+  },
+  exerciseCardFrameStroke: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.textSecondary + '20',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  exerciseCardFrameBorderTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  exerciseCardFrameBorderBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  exerciseCardFrameBorderLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+  },
+  exerciseCardFrameBorderRight: {
+    position: 'absolute',
+    top: 12,
+    right: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
   },
   exerciseHeader: {
     flexDirection: 'row',
@@ -966,12 +1193,14 @@ const styles = StyleSheet.create({
   exerciseHeaderCollapsed: {
     marginBottom: 0,
   },
+  exerciseNameContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
   exerciseName: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: colors.textPrimary,
-    flex: 1,
-    marginRight: 12,
+    color: 'rgba(255, 255, 255, 0.92)',
   },
   exerciseHeaderActions: {
     flexDirection: 'row',
@@ -981,7 +1210,7 @@ const styles = StyleSheet.create({
   exerciseSummary: {
     fontSize: 12,
     fontWeight: '500' as const,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
   },
   removeExerciseButton: {
     padding: 4,
@@ -1000,7 +1229,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 11,
     fontWeight: '600' as const,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
     marginBottom: 6,
     textTransform: 'uppercase',
   },
@@ -1016,60 +1245,140 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.textSecondary + '20',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: colors.textPrimary,
   },
   searchContainer: {
     padding: 16,
+    paddingTop: 24,
+  },
+  searchInputContainer: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  searchInputGradient: {
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   searchInput: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.textSecondary + '20',
+    color: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: 'transparent',
   },
   exercisesList: {
     flex: 1,
   },
-  exerciseOption: {
-    backgroundColor: colors.surface,
+  exerciseOptionContainer: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  // Body - glass principal
+  exerciseOptionBody: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    marginTop: 12,
+    marginBottom: 12,
+    marginLeft: 12,
+    marginRight: 12,
+  },
+  exerciseOptionGradient: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.textSecondary + '20',
+    borderRadius: 13,
+  },
+  // Frame - overlay cinza transparente
+  exerciseOptionFrame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    zIndex: 1,
+    overflow: 'hidden',
+  },
+  exerciseOptionFrameStroke: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  exerciseOptionFrameBorderTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  exerciseOptionFrameBorderBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  exerciseOptionFrameBorderLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+  },
+  exerciseOptionFrameBorderRight: {
+    position: 'absolute',
+    top: 12,
+    right: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
   },
   exerciseOptionName: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: colors.textPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
     marginBottom: 4,
   },
   exerciseOptionGroup: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
     textTransform: 'capitalize',
   },
   filtersContainer: {
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.textSecondary + '20',
   },
   filterSection: {
     marginBottom: 16,
@@ -1077,7 +1386,7 @@ const styles = StyleSheet.create({
   filterLabel: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1089,22 +1398,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: colors.background,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: colors.textSecondary + '20',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
     marginRight: 8,
   },
   filterChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: '#FF8A3D',
+    borderColor: '#FF8A3D',
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
   },
   filterChipTextSelected: {
-    color: colors.textOnPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
   },
   daysContainer: {
     flexDirection: 'row',
@@ -1115,39 +1424,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 2,
-    borderColor: colors.textSecondary + '20',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
     minWidth: 48,
     alignItems: 'center',
+    overflow: 'hidden',
   },
   dayChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: '#FF8A3D',
+    borderColor: '#FF8A3D',
   },
   dayChipText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
   },
   dayChipTextSelected: {
-    color: colors.textOnPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
   },
   restTimeSelector: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.primaryLight + '30',
+    backgroundColor: 'rgba(255, 138, 61, 0.20)',
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: colors.primaryLight + '60',
+    borderColor: 'rgba(255, 138, 61, 0.40)',
   },
   restTimeValue: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600' as const,
-    color: colors.primary,
+    color: '#FF8A3D',
   },
   setsTable: {
     marginTop: 8,
@@ -1159,20 +1469,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.textSecondary + '20',
-    backgroundColor: colors.background,
+    borderBottomColor: 'rgba(255, 255, 255, 0.10)',
   },
   setsTableHeaderText: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   setsTableCountText: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
   },
   setsList: {
     maxHeight: 200,
@@ -1184,12 +1493,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.textSecondary + '10',
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   setsTableRowText: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: colors.textPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
   },
   removeSetButton: {
     padding: 4,
@@ -1199,7 +1508,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.secondary,
+    backgroundColor: '#FF8A3D',
     borderRadius: 12,
     padding: 14,
     marginTop: 8,
@@ -1207,7 +1516,7 @@ const styles = StyleSheet.create({
   addSetButtonText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: colors.textOnPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
   },
   restConfigContainer: {
     flex: 1,

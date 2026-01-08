@@ -3,16 +3,24 @@ import { Platform } from 'react-native';
 import { Workout, WorkoutExercise, WorkoutSet } from '@/types/workout';
 
 // Configurar como as notificações devem ser tratadas quando o app está em foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+// Temporariamente desabilitado para web
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 // Solicitar permissões de notificação
 export async function requestNotificationPermissions(): Promise<boolean> {
+  // Temporariamente desabilitado para web
+  if (Platform.OS === 'web') {
+    return false;
+  }
+  
   try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -49,8 +57,12 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 
 // Cancelar todas as notificações
 export async function cancelAllNotifications() {
-  await Notifications.cancelAllScheduledNotificationsAsync();
-  await Notifications.dismissAllNotificationsAsync();
+  // Temporariamente desabilitado para web
+  // if (Platform.OS !== 'web') {
+  //   await Notifications.cancelAllScheduledNotificationsAsync();
+  //   await Notifications.dismissAllNotificationsAsync();
+  // }
+  return;
 }
 
 // Obter o exercício atual e set atual do treino
@@ -98,6 +110,11 @@ function getCurrentExerciseAndSet(workout: Workout): {
 
 // Atualizar notificação do treino ativo
 export async function updateWorkoutNotification(workout: Workout | null, restTimeRemaining?: number) {
+  // Temporariamente desabilitado para web
+  if (Platform.OS === 'web') {
+    return;
+  }
+  
   // Cancelar notificações anteriores
   await cancelAllNotifications();
 

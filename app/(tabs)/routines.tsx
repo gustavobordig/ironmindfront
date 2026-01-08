@@ -14,9 +14,11 @@ import {
   Modal,
   ActivityIndicator,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from '@/components/atoms/Toast';
 import ActiveWorkoutBanner from '@/components/organisms/ActiveWorkoutBanner';
+import AppBackground from '@/components/organisms/AppBackground';
 
 const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -148,24 +150,37 @@ export default function RoutinesScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <AppBackground>
+      <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <Text style={styles.title}>Treino</Text>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.freeWorkoutButton} onPress={handleStartFreeWorkout}>
-            <Play size={20} color={colors.textOnPrimary} fill={colors.textOnPrimary} />
+          <TouchableOpacity style={styles.freeWorkoutButton} onPress={handleStartFreeWorkout} activeOpacity={0.8}>
+            <Play size={20} color="rgba(255, 255, 255, 0.92)" fill="rgba(255, 255, 255, 0.92)" />
             <Text style={styles.freeWorkoutButtonText}>Treino Livre</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.createRoutineButton}
             onPress={() => router.push('/create-routine')}
+            activeOpacity={0.8}
           >
-            <Plus size={20} color={colors.primary} />
-            <Text style={styles.createRoutineButtonText}>Criar Rotina</Text>
+            <LinearGradient
+              colors={[
+                'rgba(255, 255, 255, 0.10)',
+                'rgba(255, 255, 255, 0.06)',
+                'rgba(0, 0, 0, 0.20)',
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.createRoutineButtonGradient}
+            >
+              <Plus size={20} color="#FF8A3D" />
+              <Text style={styles.createRoutineButtonText}>Criar Rotina</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -173,69 +188,94 @@ export default function RoutinesScreen() {
           <Text style={styles.sectionTitle}>Minhas Rotinas</Text>
 
           {routines.length === 0 && (
-            <View style={styles.emptyState}>
-              <Calendar size={48} color={colors.textSecondary} />
-              <Text style={styles.emptyStateTitle}>Nenhuma rotina criada</Text>
-              <Text style={styles.emptyStateText}>
-                Crie rotinas para organizar seus treinos semanais
-              </Text>
+            <View style={styles.emptyStateContainer}>
+              <View style={styles.emptyStateCard}>
+                <LinearGradient
+                  colors={[
+                    'rgba(255, 255, 255, 0.10)',
+                    'rgba(255, 255, 255, 0.06)',
+                    'rgba(0, 0, 0, 0.20)',
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.emptyStateGradient}
+                >
+                  <Calendar size={48} color="rgba(255, 255, 255, 0.70)" />
+                  <Text style={styles.emptyStateTitle}>Nenhuma rotina criada</Text>
+                  <Text style={styles.emptyStateText}>
+                    Crie rotinas para organizar seus treinos semanais
+                  </Text>
+                </LinearGradient>
+              </View>
             </View>
           )}
 
           {routines.map((routine) => (
             <View key={routine.id} style={styles.routineCard}>
-              <View style={styles.routineHeader}>
-                <TouchableOpacity
-                  style={styles.routineInfo}
-                  onPress={() => handleViewDetails(routine.id)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.routineName}>{routine.name}</Text>
-                  {routine.description && (
-                    <Text style={styles.routineDescription}>{routine.description}</Text>
-                  )}
-                </TouchableOpacity>
-                <View style={styles.routineActions}>
+              <LinearGradient
+                colors={[
+                  'rgba(255, 255, 255, 0.10)',
+                  'rgba(255, 255, 255, 0.06)',
+                  'rgba(0, 0, 0, 0.20)',
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.routineCardGradient}
+              >
+                <View style={styles.routineHeader}>
                   <TouchableOpacity
-                    style={styles.useButton}
-                    onPress={() => handleUseRoutine(routine.id)}
+                    style={styles.routineInfo}
+                    onPress={() => handleViewDetails(routine.id)}
+                    activeOpacity={0.7}
                   >
-                    <Play size={20} color={colors.textOnPrimary} fill={colors.textOnPrimary} />
+                    <Text style={styles.routineName}>{routine.name}</Text>
+                    {routine.description && (
+                      <Text style={styles.routineDescription}>{routine.description}</Text>
+                    )}
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.menuButton}
-                    onPress={() => setMenuVisible(routine.id)}
-                  >
-                    <MoreVertical size={20} color={colors.textSecondary} />
-                  </TouchableOpacity>
+                  <View style={styles.routineActions}>
+                    <TouchableOpacity
+                      style={styles.useButton}
+                      onPress={() => handleUseRoutine(routine.id)}
+                      activeOpacity={0.8}
+                    >
+                      <Play size={20} color="rgba(255, 255, 255, 0.92)" fill="rgba(255, 255, 255, 0.92)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.menuButton}
+                      onPress={() => setMenuVisible(routine.id)}
+                    >
+                      <MoreVertical size={20} color="rgba(255, 255, 255, 0.70)" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
 
-              {routine.daysOfWeek && routine.daysOfWeek.length > 0 && (
-                <View style={styles.daysRow}>
-                  {routine.daysOfWeek.map((day) => (
-                    <View key={day} style={styles.dayChip}>
-                      <Text style={styles.dayChipText}>{DAY_NAMES[day]}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              <View style={styles.exercisesList}>
-                <Text style={styles.exercisesTitle}>
-                  {routine.exercises.length} exercícios
-                </Text>
-                {routine.exercises.slice(0, 4).map((ex) => (
-                  <Text key={ex.id} style={styles.exerciseItem}>
-                    • {ex.exercise.name} - {ex.targetSets} x {ex.targetReps}
-                  </Text>
-                ))}
-                {routine.exercises.length > 4 && (
-                  <Text style={styles.exerciseItem}>
-                    + {routine.exercises.length - 4} mais
-                  </Text>
+                {routine.daysOfWeek && routine.daysOfWeek.length > 0 && (
+                  <View style={styles.daysRow}>
+                    {routine.daysOfWeek.map((day) => (
+                      <View key={day} style={styles.dayChip}>
+                        <Text style={styles.dayChipText}>{DAY_NAMES[day]}</Text>
+                      </View>
+                    ))}
+                  </View>
                 )}
-              </View>
+
+                <View style={styles.exercisesList}>
+                  <Text style={styles.exercisesTitle}>
+                    {routine.exercises.length} exercícios
+                  </Text>
+                  {routine.exercises.slice(0, 4).map((ex) => (
+                    <Text key={ex.id} style={styles.exerciseItem}>
+                      • {ex.exercise.name} - {ex.targetSets} x {ex.targetReps}
+                    </Text>
+                  ))}
+                  {routine.exercises.length > 4 && (
+                    <Text style={styles.exerciseItem}>
+                      + {routine.exercises.length - 4} mais
+                    </Text>
+                  )}
+                </View>
+              </LinearGradient>
             </View>
           ))}
         </View>
@@ -265,15 +305,15 @@ export default function RoutinesScreen() {
                 style={styles.menuItem}
                 onPress={() => handleEditRoutine(menuVisible)}
               >
-                <Edit size={18} color={colors.primary} />
-                <Text style={[styles.menuItemText, { color: colors.primary }]}>Editar</Text>
+                <Edit size={18} color="#FF8A3D" />
+                <Text style={[styles.menuItemText, { color: '#FF8A3D' }]}>Editar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.menuItem, styles.menuItemDanger]}
                 onPress={() => handleDeleteRoutine(menuVisible)}
               >
-                <Trash2 size={18} color={colors.error} />
-                <Text style={[styles.menuItemText, { color: colors.error }]}>Excluir</Text>
+                <Trash2 size={18} color="#EB5757" />
+                <Text style={[styles.menuItemText, { color: '#EB5757' }]}>Excluir</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -349,13 +389,13 @@ export default function RoutinesScreen() {
       />
       <ActiveWorkoutBanner />
     </View>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -367,7 +407,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '700' as const,
-    color: colors.textPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
   },
   addButton: {
     width: 44,
@@ -390,8 +430,8 @@ const styles = StyleSheet.create({
   },
   freeWorkoutButton: {
     flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
+    backgroundColor: '#FF8A3D',
+    borderRadius: 13,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -399,35 +439,49 @@ const styles = StyleSheet.create({
     gap: 8,
     ...Platform.select({
       ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 2 },
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
-        shadowRadius: 4,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 3,
+        elevation: 4,
       },
     }),
   },
   freeWorkoutButtonText: {
-    color: colors.textOnPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
     fontSize: 16,
     fontWeight: '700' as const,
   },
   createRoutineButton: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: 13,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  createRoutineButtonGradient: {
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 138, 61, 0.40)',
   },
   createRoutineButtonText: {
-    color: colors.primary,
+    color: '#FF8A3D',
     fontSize: 16,
     fontWeight: '700' as const,
   },
@@ -438,44 +492,68 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: colors.textPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
     marginBottom: 16,
   },
-  emptyState: {
-    alignItems: 'center',
+  emptyStateContainer: {
+    marginTop: 8,
+  },
+  emptyStateCard: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  emptyStateGradient: {
     padding: 48,
     paddingTop: 32,
+    alignItems: 'center',
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: '600' as const,
-    color: colors.textPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
     textAlign: 'center',
   },
   routineCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 13,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.textSecondary + '20',
+    overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 1,
+        elevation: 4,
       },
     }),
+  },
+  routineCardGradient: {
+    padding: 20,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
   routineHeader: {
     flexDirection: 'row',
@@ -506,16 +584,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuContent: {
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(30, 31, 34, 0.95)',
     borderRadius: 16,
     padding: 8,
     minWidth: 200,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
       },
       android: {
         elevation: 8,
@@ -531,41 +611,41 @@ const styles = StyleSheet.create({
   },
   menuItemDanger: {
     borderTopWidth: 1,
-    borderTopColor: colors.textSecondary + '20',
+    borderTopColor: 'rgba(255, 255, 255, 0.10)',
     marginTop: 4,
   },
   menuItemText: {
     fontSize: 16,
     fontWeight: '500' as const,
-    color: colors.textPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
   },
   routineName: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: colors.textPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
     marginBottom: 4,
   },
   routineDescription: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
     lineHeight: 20,
   },
   useButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primary,
+    backgroundColor: '#FF8A3D',
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 2 },
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
-        shadowRadius: 4,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 3,
+        elevation: 4,
       },
     }),
   },
@@ -576,20 +656,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.textSecondary + '20',
+    borderBottomColor: 'rgba(255, 255, 255, 0.10)',
   },
   dayChip: {
-    backgroundColor: colors.primary + '15',
+    backgroundColor: 'rgba(255, 138, 61, 0.20)',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: 'rgba(255, 138, 61, 0.40)',
   },
   dayChipText: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: colors.primary,
+    color: '#FF8A3D',
   },
   exercisesList: {
     paddingTop: 16,
@@ -597,14 +677,14 @@ const styles = StyleSheet.create({
   exercisesTitle: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.70)',
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   exerciseItem: {
     fontSize: 14,
-    color: colors.textPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
     marginBottom: 6,
     lineHeight: 20,
   },

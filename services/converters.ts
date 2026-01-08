@@ -10,6 +10,7 @@ import type {
   WorkoutSet as ApiWorkoutSet,
   RoutineExercise as ApiRoutineExercise,
   PersonalRecord as ApiPersonalRecord,
+  Goal as ApiGoal,
 } from '@/types/api';
 
 import type {
@@ -20,6 +21,7 @@ import type {
   WorkoutSet,
   RoutineExercise,
   PersonalRecord,
+  Goal,
 } from '@/types/workout';
 
 /**
@@ -86,6 +88,19 @@ export function convertApiWorkoutToLocal(apiWorkout: ApiWorkout): Workout {
 }
 
 /**
+ * Converte um Goal da API para o tipo local
+ */
+export function convertApiGoalToLocal(apiGoal: ApiGoal): Goal {
+  return {
+    id: apiGoal.id,
+    targetKg: apiGoal.targetKg,
+    bestKg: apiGoal.bestKg,
+    nextMilestoneKg: apiGoal.nextMilestoneKg,
+    status: apiGoal.status,
+  };
+}
+
+/**
  * Converte um RoutineExercise da API para o tipo local
  */
 export function convertApiRoutineExerciseToLocal(
@@ -100,6 +115,8 @@ export function convertApiRoutineExerciseToLocal(
     targetWeight: apiRoutineExercise.targetWeight,
     restTime: apiRoutineExercise.restTime,
     notes: apiRoutineExercise.notes,
+    hasGoal: apiRoutineExercise.hasGoal,
+    goal: apiRoutineExercise.goal ? convertApiGoalToLocal(apiRoutineExercise.goal) : null,
   };
 }
 
