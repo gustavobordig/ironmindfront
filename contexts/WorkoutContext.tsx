@@ -667,6 +667,11 @@ export const [WorkoutProvider, useWorkout] = createContextHook(() => {
         });
       });
 
+      // Retornar null se não houver PR válido (peso > 0)
+      if (maxWeight === 0) {
+        return null;
+      }
+
       const estimatedOneRepMax = maxWeight * (1 + maxReps / 30);
 
       return {
@@ -678,6 +683,10 @@ export const [WorkoutProvider, useWorkout] = createContextHook(() => {
       };
     } catch (error) {
       console.error('Error getting personal record:', error);
+      // Se for erro 404, retornar null em vez de lançar erro
+      if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 404) {
+        return null;
+      }
       throw error;
     }
   }, [getExerciseHistory]);

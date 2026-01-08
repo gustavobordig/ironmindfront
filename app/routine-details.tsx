@@ -1,5 +1,5 @@
 import { useWorkout } from '@/contexts/WorkoutContext';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import {
   ChevronDown,
   ChevronUp,
@@ -12,7 +12,7 @@ import {
   Dumbbell,
   Trash2,
 } from 'lucide-react-native';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,9 +22,12 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import Toast from '@/components/atoms/Toast';
+import HeaderGlass from '@/components/molecules/HeaderGlass';
+import AppBackground from '@/components/organisms/AppBackground';
 
 const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -32,13 +35,14 @@ export default function RoutineDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { routines, workouts, startWorkout, getExerciseHistory, getPersonalRecord, deleteRoutine, activeWorkout } =
     useWorkout();
-  const insets = useSafeAreaInsets();
 
   const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [exerciseHistories, setExerciseHistories] = useState<Record<string, any[]>>({});
+  const [exercisePRs, setExercisePRs] = useState<Record<string, any | null>>({});
 
   const routine = useMemo(() => {
     return routines.find((r) => r.id === id);
@@ -52,6 +56,38 @@ export default function RoutineDetailsScreen() {
   }, [workouts, routine]);
 
   const lastWorkout = routineWorkouts[0];
+
+  // Carregar históricos e PRs dos exercícios
+  useEffect(() => {
+    if (!routine) return;
+
+    const loadExerciseData = async () => {
+      const histories: Record<string, any[]> = {};
+      const prs: Record<string, any | null> = {};
+
+      await Promise.all(
+        routine.exercises.map(async (routineEx) => {
+          try {
+            const [history, pr] = await Promise.all([
+              getExerciseHistory(routineEx.exerciseId).catch(() => []),
+              getPersonalRecord(routineEx.exerciseId).catch(() => null),
+            ]);
+            histories[routineEx.exerciseId] = history || [];
+            prs[routineEx.exerciseId] = pr;
+          } catch (error) {
+            console.error('Error loading exercise data:', error);
+            histories[routineEx.exerciseId] = [];
+            prs[routineEx.exerciseId] = null;
+          }
+        })
+      );
+
+      setExerciseHistories(histories);
+      setExercisePRs(prs);
+    };
+
+    loadExerciseData();
+  }, [routine, getExerciseHistory, getPersonalRecord]);
 
   const averageStats = useMemo(() => {
     if (routineWorkouts.length === 0)
@@ -186,122 +222,263 @@ export default function RoutineDetailsScreen() {
 
   if (!routine) {
     return (
-      <View style={styles.container}>
-        <Stack.Screen options={{ title: 'Rotina não encontrada' }} />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Rotina não encontrada</Text>
-        </View>
-      </View>
+      <AppBackground>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <HeaderGlass title="Rotina" onBack={() => router.back()} />
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Rotina não encontrada</Text>
+          </View>
+        </SafeAreaView>
+      </AppBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: routine.name,
-          headerStyle: { backgroundColor: '#fff' },
-          headerTintColor: '#111827',
-          headerShadowVisible: false,
-        }}
-      />
+    <AppBackground>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <HeaderGlass title={routine.name} onBack={() => router.back()} />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerSection}>
-          <Text style={styles.routineName}>{routine.name}</Text>
-          {routine.description && (
-            <Text style={styles.routineDescription}>{routine.description}</Text>
-          )}
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* Header Card */}
+          <View style={styles.headerCard}>
+            <View style={styles.headerCardBody}>
+              <LinearGradient
+                colors={[
+                  'rgba(255, 255, 255, 0.10)',
+                  'rgba(255, 255, 255, 0.06)',
+                  'rgba(0, 0, 0, 0.20)',
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.headerCardGradient}
+              >
+                {routine.description && (
+                  <Text style={styles.routineDescription}>{routine.description}</Text>
+                )}
 
-          {routine.daysOfWeek && routine.daysOfWeek.length > 0 && (
-            <View style={styles.daysRow}>
-              {routine.daysOfWeek.map((day) => (
-                <View key={day} style={styles.dayChip}>
-                  <Text style={styles.dayChipText}>{DAY_NAMES[day]}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        <View style={styles.statsSection}>
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Dumbbell size={20} color="#3b82f6" />
-            </View>
-            <Text style={styles.statValue}>{averageStats.exercises}</Text>
-            <Text style={styles.statLabel}>Exercícios</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Target size={20} color="#10b981" />
-            </View>
-            <Text style={styles.statValue}>{averageStats.sets}</Text>
-            <Text style={styles.statLabel}>Séries média</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Clock size={20} color="#f59e0b" />
-            </View>
-            <Text style={styles.statValue}>
-              {averageStats.duration > 0 ? formatDuration(averageStats.duration) : 'N/A'}
-            </Text>
-            <Text style={styles.statLabel}>Tempo médio</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <TrendingUp size={20} color="#8b5cf6" />
-            </View>
-            <Text style={styles.statValue}>
-              {averageStats.volume > 0 ? `${(averageStats.volume / 1000).toFixed(1)}K` : '0'}
-            </Text>
-            <Text style={styles.statLabel}>Volume médio</Text>
-          </View>
-        </View>
-
-        {lastWorkout && (
-          <View style={styles.infoCard}>
-            <Text style={styles.infoCardTitle}>Último Treino</Text>
-            <Text style={styles.infoCardText}>{formatDate(lastWorkout.date)}</Text>
-          </View>
-        )}
-
-        <View style={styles.exercisesSection}>
-          <Text style={styles.sectionTitle}>Exercícios da Rotina</Text>
-
-          {routine.exercises.map((routineEx) => {
-            const isExpanded = expandedExercises.has(routineEx.id);
-            const history = getExerciseHistory(routineEx.exerciseId);
-            const pr = getPersonalRecord(routineEx.exerciseId);
-            const lastPerformance = history[0];
-
-            return (
-              <View key={routineEx.id} style={styles.exerciseCard}>
-                <TouchableOpacity
-                  style={styles.exerciseHeader}
-                  onPress={() => toggleExercise(routineEx.id)}
-                >
-                  <View style={styles.exerciseHeaderLeft}>
-                    <TouchableOpacity
-                      onPress={() => router.push(`/exercise-details?exerciseId=${routineEx.exerciseId}`)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.exerciseName}>{routineEx.exercise.name}</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.exerciseMeta}>
-                      {routineEx.targetSets} × {routineEx.targetReps} reps •{' '}
-                      {routineEx.restTime}s descanso
-                    </Text>
+                {routine.daysOfWeek && routine.daysOfWeek.length > 0 && (
+                  <View style={styles.daysRow}>
+                    {routine.daysOfWeek.map((day) => (
+                      <View key={day} style={styles.dayChip}>
+                        <Text style={styles.dayChipText}>{DAY_NAMES[day]}</Text>
+                      </View>
+                    ))}
                   </View>
-                  {isExpanded ? (
-                    <ChevronUp size={20} color="#9ca3af" />
-                  ) : (
-                    <ChevronDown size={20} color="#9ca3af" />
-                  )}
-                </TouchableOpacity>
+                )}
+              </LinearGradient>
+            </View>
+            
+            {/* Frame - overlay cinza transparente */}
+            <View style={styles.headerCardFrame} pointerEvents="none">
+              <View style={styles.headerCardFrameBorderTop} />
+              <View style={styles.headerCardFrameBorderBottom} />
+              <View style={styles.headerCardFrameBorderLeft} />
+              <View style={styles.headerCardFrameBorderRight} />
+              <View style={styles.headerCardFrameStroke} />
+            </View>
+          </View>
+
+          {/* Stats Cards */}
+          <View style={styles.statsSection}>
+            <View style={styles.statCard}>
+              <View style={styles.statCardBody}>
+                <LinearGradient
+                  colors={[
+                    'rgba(255, 255, 255, 0.10)',
+                    'rgba(255, 255, 255, 0.06)',
+                    'rgba(0, 0, 0, 0.20)',
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.statCardGradient}
+                >
+                  <View style={styles.statIconContainer}>
+                    <Dumbbell size={24} color="#FF8A3D" />
+                  </View>
+                  <View style={styles.statContent}>
+                    <Text style={styles.statValue} numberOfLines={1}>{averageStats.exercises}</Text>
+                    <Text style={styles.statLabel} numberOfLines={1}>Exercícios</Text>
+                  </View>
+                </LinearGradient>
+              </View>
+              <View style={styles.statCardFrame} pointerEvents="none">
+                <View style={styles.statCardFrameBorderTop} />
+                <View style={styles.statCardFrameBorderBottom} />
+                <View style={styles.statCardFrameBorderLeft} />
+                <View style={styles.statCardFrameBorderRight} />
+                <View style={styles.statCardFrameStroke} />
+              </View>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={styles.statCardBody}>
+                <LinearGradient
+                  colors={[
+                    'rgba(255, 255, 255, 0.10)',
+                    'rgba(255, 255, 255, 0.06)',
+                    'rgba(0, 0, 0, 0.20)',
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.statCardGradient}
+                >
+                  <View style={styles.statIconContainer}>
+                    <Target size={24} color="#FF8A3D" />
+                  </View>
+                  <View style={styles.statContent}>
+                    <Text style={styles.statValue} numberOfLines={1}>{averageStats.sets}</Text>
+                    <Text style={styles.statLabel} numberOfLines={1}>Séries média</Text>
+                  </View>
+                </LinearGradient>
+              </View>
+              <View style={styles.statCardFrame} pointerEvents="none">
+                <View style={styles.statCardFrameBorderTop} />
+                <View style={styles.statCardFrameBorderBottom} />
+                <View style={styles.statCardFrameBorderLeft} />
+                <View style={styles.statCardFrameBorderRight} />
+                <View style={styles.statCardFrameStroke} />
+              </View>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={styles.statCardBody}>
+                <LinearGradient
+                  colors={[
+                    'rgba(255, 255, 255, 0.10)',
+                    'rgba(255, 255, 255, 0.06)',
+                    'rgba(0, 0, 0, 0.20)',
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.statCardGradient}
+                >
+                  <View style={styles.statIconContainer}>
+                    <Clock size={24} color="#FF8A3D" />
+                  </View>
+                  <View style={styles.statContent}>
+                    <Text style={styles.statValue} numberOfLines={1}>
+                      {averageStats.duration > 0 ? formatDuration(averageStats.duration) : 'N/A'}
+                    </Text>
+                    <Text style={styles.statLabel} numberOfLines={1}>Tempo médio</Text>
+                  </View>
+                </LinearGradient>
+              </View>
+              <View style={styles.statCardFrame} pointerEvents="none">
+                <View style={styles.statCardFrameBorderTop} />
+                <View style={styles.statCardFrameBorderBottom} />
+                <View style={styles.statCardFrameBorderLeft} />
+                <View style={styles.statCardFrameBorderRight} />
+                <View style={styles.statCardFrameStroke} />
+              </View>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={styles.statCardBody}>
+                <LinearGradient
+                  colors={[
+                    'rgba(255, 255, 255, 0.10)',
+                    'rgba(255, 255, 255, 0.06)',
+                    'rgba(0, 0, 0, 0.20)',
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.statCardGradient}
+                >
+                  <View style={styles.statIconContainer}>
+                    <TrendingUp size={24} color="#FF8A3D" />
+                  </View>
+                  <View style={styles.statContent}>
+                    <Text style={styles.statValue} numberOfLines={1}>
+                      {averageStats.volume > 0 ? `${(averageStats.volume / 1000).toFixed(1)}K` : '0'}
+                    </Text>
+                    <Text style={styles.statLabel} numberOfLines={1}>Volume médio</Text>
+                  </View>
+                </LinearGradient>
+              </View>
+              <View style={styles.statCardFrame} pointerEvents="none">
+                <View style={styles.statCardFrameBorderTop} />
+                <View style={styles.statCardFrameBorderBottom} />
+                <View style={styles.statCardFrameBorderLeft} />
+                <View style={styles.statCardFrameBorderRight} />
+                <View style={styles.statCardFrameStroke} />
+              </View>
+            </View>
+          </View>
+
+          {lastWorkout && (
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardBody}>
+                <LinearGradient
+                  colors={[
+                    'rgba(255, 255, 255, 0.10)',
+                    'rgba(255, 255, 255, 0.06)',
+                    'rgba(0, 0, 0, 0.20)',
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.infoCardGradient}
+                >
+                  <Text style={styles.infoCardTitle}>Último Treino</Text>
+                  <Text style={styles.infoCardText}>{formatDate(lastWorkout.date)}</Text>
+                </LinearGradient>
+              </View>
+              
+              {/* Frame - overlay cinza transparente */}
+              <View style={styles.infoCardFrame} pointerEvents="none">
+                <View style={styles.infoCardFrameBorderTop} />
+                <View style={styles.infoCardFrameBorderBottom} />
+                <View style={styles.infoCardFrameBorderLeft} />
+                <View style={styles.infoCardFrameBorderRight} />
+                <View style={styles.infoCardFrameStroke} />
+              </View>
+            </View>
+          )}
+
+          <View style={styles.exercisesSection}>
+            <Text style={styles.sectionTitle}>Exercícios da Rotina</Text>
+
+            {routine.exercises.map((routineEx) => {
+              const isExpanded = expandedExercises.has(routineEx.id);
+              const history = exerciseHistories[routineEx.exerciseId] || [];
+              const pr = exercisePRs[routineEx.exerciseId] || null;
+              const lastPerformance = history[0];
+
+              return (
+                <View key={routineEx.id} style={styles.exerciseCard}>
+                  <View style={styles.exerciseCardBody}>
+                    <LinearGradient
+                      colors={[
+                        'rgba(255, 255, 255, 0.10)',
+                        'rgba(255, 255, 255, 0.06)',
+                        'rgba(0, 0, 0, 0.20)',
+                      ]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={styles.exerciseCardGradient}
+                    >
+                      <TouchableOpacity
+                        style={styles.exerciseHeader}
+                        onPress={() => toggleExercise(routineEx.id)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.exerciseHeaderLeft}>
+                          <TouchableOpacity
+                            onPress={() => router.push(`/exercise-details?exerciseId=${routineEx.exerciseId}`)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.exerciseName}>{routineEx.exercise.name}</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.exerciseMeta}>
+                            {routineEx.targetSets} × {routineEx.targetReps} reps •{' '}
+                            {routineEx.restTime}s descanso
+                          </Text>
+                        </View>
+                        {isExpanded ? (
+                          <ChevronUp size={20} color="rgba(255, 255, 255, 0.55)" />
+                        ) : (
+                          <ChevronDown size={20} color="rgba(255, 255, 255, 0.55)" />
+                        )}
+                      </TouchableOpacity>
 
                 {isExpanded && (
                   <View style={styles.exerciseDetails}>
@@ -335,9 +512,9 @@ export default function RoutineDetailsScreen() {
                         </Text>
                         <View style={styles.lastSetsContainer}>
                           {lastPerformance.exercise.sets
-                            .filter((s) => s.completed)
+                            .filter((s: any) => s.completed)
                             .slice(0, 3)
-                            .map((set, index) => (
+                            .map((set: any, index: number) => (
                               <View key={set.id} style={styles.lastSetChip}>
                                 <Text style={styles.lastSetText}>
                                   {set.weight}kg × {set.reps}
@@ -371,18 +548,29 @@ export default function RoutineDetailsScreen() {
                         <Text style={styles.notesSectionTitle}>Observações</Text>
                         <Text style={styles.notesText}>{routineEx.notes}</Text>
                       </View>
-                    )}
+                      )}
+                    </View>
+                  )}
+                    </LinearGradient>
                   </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
+                  
+                  {/* Frame - overlay cinza transparente */}
+                  <View style={styles.exerciseCardFrame} pointerEvents="none">
+                    <View style={styles.exerciseCardFrameBorderTop} />
+                    <View style={styles.exerciseCardFrameBorderBottom} />
+                    <View style={styles.exerciseCardFrameBorderLeft} />
+                    <View style={styles.exerciseCardFrameBorderRight} />
+                    <View style={styles.exerciseCardFrameStroke} />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
+          <View style={{ height: 100 }} />
+        </ScrollView>
 
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.secondaryButton} onPress={handleEditRoutine}>
           <Edit size={20} color={colors.primary} />
           <Text style={styles.secondaryButtonText}>Editar</Text>
@@ -407,13 +595,14 @@ export default function RoutineDetailsScreen() {
         </TouchableOpacity>
       </View>
 
-      <Toast
-        message={toastMessage}
-        type={toastMessage.includes('sucesso') ? 'success' : 'error'}
-        visible={toastVisible}
-        onHide={() => setToastVisible(false)}
-      />
-    </View>
+        <Toast
+          message={toastMessage}
+          type={toastMessage.includes('sucesso') ? 'success' : 'error'}
+          visible={toastVisible}
+          onHide={() => setToastVisible(false)}
+        />
+      </SafeAreaView>
+    </AppBackground>
   );
 }
 
@@ -424,6 +613,11 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    padding: 20,
+    paddingTop: 12,
+    paddingBottom: 100,
+  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -432,23 +626,43 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.70)',
   },
-  headerSection: {
-    padding: 24,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+  headerCard: {
+    position: 'relative',
+    borderRadius: 20,
+    marginBottom: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  routineName: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    color: '#111827',
-    marginBottom: 8,
+  headerCardBody: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    marginTop: 12,
+    marginBottom: 12,
+    marginLeft: 12,
+    marginRight: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+  },
+  headerCardGradient: {
+    padding: 16,
+    borderRadius: 13,
   },
   routineDescription: {
     fontSize: 16,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.70)',
     lineHeight: 24,
     marginBottom: 16,
   },
@@ -458,95 +672,346 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dayChip: {
-    backgroundColor: '#3b82f615',
+    backgroundColor: 'rgba(255, 138, 61, 0.20)',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: '#3b82f630',
+    borderColor: 'rgba(255, 138, 61, 0.30)',
   },
   dayChipText: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#3b82f6',
+    color: '#FF8A3D',
+  },
+  // Frame - overlay cinza transparente
+  headerCardFrame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    zIndex: 1,
+    overflow: 'hidden',
+  },
+  headerCardFrameStroke: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  headerCardFrameBorderTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  headerCardFrameBorderBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  headerCardFrameBorderLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+  },
+  headerCardFrameBorderRight: {
+    position: 'absolute',
+    top: 12,
+    right: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
   },
   statsSection: {
     flexDirection: 'row',
-    padding: 16,
+    flexWrap: 'wrap',
     gap: 12,
-    backgroundColor: '#fff',
-    marginTop: 8,
+    marginBottom: 16,
   },
   statCard: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 12,
+    width: '48%',
+    position: 'relative',
+    borderRadius: 20,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  statCardBody: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    marginTop: 12,
+    marginBottom: 12,
+    marginLeft: 12,
+    marginRight: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+  },
+  statCardGradient: {
+    padding: 16,
+    borderRadius: 13,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 12,
+    minHeight: 80,
+    overflow: 'hidden',
   },
   statIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#fff',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 138, 61, 0.20)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    flexShrink: 0,
+  },
+  statContent: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '700' as const,
-    color: '#111827',
+    color: 'rgba(255, 255, 255, 0.92)',
+    lineHeight: 24,
   },
   statLabel: {
-    fontSize: 10,
-    color: '#6b7280',
-    textAlign: 'center',
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.70)',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  // Frame - overlay cinza transparente para stat cards
+  statCardFrame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    zIndex: 1,
+    overflow: 'hidden',
+  },
+  statCardFrameStroke: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  statCardFrameBorderTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  statCardFrameBorderBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  statCardFrameBorderLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+  },
+  statCardFrameBorderRight: {
+    position: 'absolute',
+    top: 12,
+    right: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
   },
   infoCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 8,
-    padding: 16,
-    borderRadius: 12,
+    position: 'relative',
+    borderRadius: 20,
+    marginBottom: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  infoCardBody: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    marginTop: 12,
+    marginBottom: 12,
+    marginLeft: 12,
+    marginRight: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+  },
+  infoCardGradient: {
+    padding: 16,
+    borderRadius: 13,
   },
   infoCardTitle: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.70)',
     marginBottom: 4,
   },
   infoCardText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#111827',
+    color: 'rgba(255, 255, 255, 0.92)',
+  },
+  // Frame - overlay cinza transparente
+  infoCardFrame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    zIndex: 1,
+    overflow: 'hidden',
+  },
+  infoCardFrameStroke: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  infoCardFrameBorderTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  infoCardFrameBorderBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  infoCardFrameBorderLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+  },
+  infoCardFrameBorderRight: {
+    position: 'absolute',
+    top: 12,
+    right: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
   },
   exercisesSection: {
-    padding: 16,
-    paddingTop: 24,
+    marginTop: 8,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700' as const,
-    color: '#111827',
+    color: 'rgba(255, 255, 255, 0.92)',
     marginBottom: 16,
   },
   exerciseCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    position: 'relative',
+    borderRadius: 20,
     marginBottom: 12,
     overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  exerciseCardBody: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    marginTop: 12,
+    marginBottom: 12,
+    marginLeft: 12,
+    marginRight: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+  },
+  exerciseCardGradient: {
+    padding: 16,
+    borderRadius: 13,
   },
   exerciseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
   },
   exerciseHeaderLeft: {
     flex: 1,
@@ -554,51 +1019,52 @@ const styles = StyleSheet.create({
   exerciseName: {
     fontSize: 17,
     fontWeight: '600' as const,
-    color: '#111827',
+    color: 'rgba(255, 255, 255, 0.92)',
     marginBottom: 4,
   },
   exerciseMeta: {
     fontSize: 14,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.70)',
   },
   exerciseDetails: {
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    padding: 16,
+    borderTopColor: 'rgba(255, 255, 255, 0.10)',
+    paddingTop: 16,
+    marginTop: 16,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: 'rgba(255, 255, 255, 0.10)',
   },
   detailLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.70)',
   },
   detailValue: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#111827',
+    color: 'rgba(255, 255, 255, 0.92)',
   },
   historySection: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: 'rgba(255, 255, 255, 0.10)',
   },
   historySectionTitle: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.70)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
   },
   historyText: {
     fontSize: 14,
-    color: '#374151',
+    color: 'rgba(255, 255, 255, 0.70)',
     marginBottom: 12,
   },
   lastSetsContainer: {
@@ -607,34 +1073,38 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   lastSetChip: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
   lastSetText: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#374151',
+    color: 'rgba(255, 255, 255, 0.92)',
   },
   prSection: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: 'rgba(255, 255, 255, 0.10)',
   },
   prSectionTitle: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.70)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
   },
   prCard: {
-    backgroundColor: '#fef3c7',
+    backgroundColor: 'rgba(255, 138, 61, 0.15)',
     borderRadius: 8,
     padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 138, 61, 0.25)',
   },
   prRow: {
     flexDirection: 'row',
@@ -643,63 +1113,125 @@ const styles = StyleSheet.create({
   },
   prLabel: {
     fontSize: 14,
-    color: '#92400e',
+    color: 'rgba(255, 255, 255, 0.70)',
   },
   prValue: {
     fontSize: 14,
     fontWeight: '700' as const,
-    color: '#78350f',
+    color: '#FF8A3D',
   },
   notesSection: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: 'rgba(255, 255, 255, 0.10)',
   },
   notesSectionTitle: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.70)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
   },
   notesText: {
     fontSize: 14,
-    color: '#374151',
+    color: 'rgba(255, 255, 255, 0.92)',
     lineHeight: 20,
   },
+  // Frame - overlay cinza transparente
+  exerciseCardFrame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    zIndex: 1,
+    overflow: 'hidden',
+  },
+  exerciseCardFrameStroke: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  exerciseCardFrameBorderTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  exerciseCardFrameBorderBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  exerciseCardFrameBorderLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+  },
+  exerciseCardFrameBorderRight: {
+    position: 'absolute',
+    top: 12,
+    right: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+  },
   bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: 'transparent',
     borderTopWidth: 1,
-    borderTopColor: colors.textSecondary + '20',
-    padding: 16,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 20,
+    paddingBottom: 20,
     gap: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
   },
   primaryButton: {
     flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: '#FF8A3D',
     borderRadius: 12,
     padding: 16,
     gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   primaryButtonText: {
-    color: colors.textOnPrimary,
+    color: 'rgba(255, 255, 255, 0.92)',
     fontSize: 16,
     fontWeight: '700' as const,
   },
@@ -708,18 +1240,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderRadius: 12,
     padding: 12,
     gap: 6,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
   deleteButton: {
-    borderColor: colors.error,
+    borderColor: '#FF5A5A',
   },
   secondaryButtonText: {
-    color: colors.primary,
+    color: '#FF8A3D',
     fontSize: 14,
     fontWeight: '700' as const,
   },

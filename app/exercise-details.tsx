@@ -11,7 +11,7 @@ import {
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Target, Plus } from 'lucide-react-native';
+import { Dumbbell, Target, Plus, Check } from 'lucide-react-native';
 import { useWorkout } from '@/contexts/WorkoutContext';
 import HeaderGlass from '@/components/molecules/HeaderGlass';
 import AppBackground from '@/components/organisms/AppBackground';
@@ -52,7 +52,12 @@ export default function ExerciseDetailsScreen() {
       try {
         setIsLoadingGoal(true);
         const goalData = await goalsService.getGoalByExercise(exerciseId);
-        setGoal(goalData);
+        // Validar se a meta tem valores válidos
+        if (goalData && goalData.targetKg && goalData.targetKg > 0) {
+          setGoal(goalData);
+        } else {
+          setGoal(null);
+        }
       } catch (error) {
         console.error('Error loading goal:', error);
         setGoal(null);
@@ -65,13 +70,16 @@ export default function ExerciseDetailsScreen() {
       try {
         setIsLoadingData(true);
         const [historyData, prData] = await Promise.all([
-          getExerciseHistory(exerciseId),
-          getPersonalRecord(exerciseId),
+          getExerciseHistory(exerciseId).catch(() => []),
+          getPersonalRecord(exerciseId).catch(() => null),
         ]);
-        setHistory(historyData);
-        setPr(prData);
+        setHistory(historyData || []);
+        // Só definir PR se houver peso maior que 0
+        setPr(prData && prData.weight > 0 ? prData : null);
       } catch (error) {
         console.error('Error loading exercise data:', error);
+        setHistory([]);
+        setPr(null);
       } finally {
         setIsLoadingData(false);
       }
@@ -85,7 +93,16 @@ export default function ExerciseDetailsScreen() {
   useFocusEffect(
     React.useCallback(() => {
       if (exerciseId) {
-        goalsService.getGoalByExercise(exerciseId).then(setGoal).catch(() => setGoal(null));
+        goalsService.getGoalByExercise(exerciseId)
+          .then((goalData) => {
+            // Validar se a meta tem valores válidos
+            if (goalData && goalData.targetKg && goalData.targetKg > 0) {
+              setGoal(goalData);
+            } else {
+              setGoal(null);
+            }
+          })
+          .catch(() => setGoal(null));
       }
     }, [exerciseId])
   );
@@ -237,13 +254,17 @@ export default function ExerciseDetailsScreen() {
                   <View style={styles.goalDataRow}>
                     <View style={styles.goalDataItem}>
                       <Text style={styles.goalDataLabel}>Meta:</Text>
-                      <Text style={styles.goalDataValue}>{goal.targetKg} kg</Text>
+                      <Text style={styles.goalDataValue}>
+                        {goal.targetKg && goal.targetKg > 0 ? `${goal.targetKg} kg` : '—'}
+                      </Text>
                     </View>
                     <View style={styles.goalDataItem}>
                       <Text style={styles.goalDataLabel}>Atual:</Text>
-                      <Text style={styles.goalDataValue}>{goal.bestKg} kg</Text>
+                      <Text style={styles.goalDataValue}>
+                        {goal.bestKg && goal.bestKg > 0 ? `${goal.bestKg} kg` : '—'}
+                      </Text>
                     </View>
-                    {goal.nextMilestoneKg && (
+                    {goal.nextMilestoneKg && goal.nextMilestoneKg > 0 && (
                       <View style={styles.goalDataItem}>
                         <Text style={styles.goalDataLabel}>Próximo:</Text>
                         <Text style={styles.goalDataValue}>{goal.nextMilestoneKg} kg</Text>
@@ -306,37 +327,76 @@ export default function ExerciseDetailsScreen() {
           )}
 
           {/* Histórico */}
-          <View style={styles.historySection}>
-            <Text style={styles.historyTitle}>Histórico</Text>
-            
-            {isLoadingData ? (
-              <ActivityIndicator size="small" color="#FF8A3D" style={styles.loadingIndicator} />
-            ) : history.length === 0 ? (
-              <Text style={styles.emptyHistoryText}>Nenhum histórico disponível</Text>
-            ) : (
-              <View style={styles.historyList}>
-                {history.slice(0, 5).map((entry, index) => {
-                  const completedSets = entry.exercise.sets.filter((s: any) => s.completed);
-                  const firstSet = completedSets[0];
-                  return (
-                    <View key={index} style={styles.historyItem}>
-                      <View style={styles.historyItemLeft}>
-                        <View style={styles.historyCheckbox} />
-                        <Text style={styles.historyDate}>{formatDate(new Date(entry.workout.date))}</Text>
-                      </View>
-                      <Text style={styles.historyValue}>
-                        {completedSets.length} × {firstSet?.weight || 0} kg
-                      </Text>
-                    </View>
-                  );
-                })}
-                {history.length > 5 && (
-                  <TouchableOpacity style={styles.seeAllButton}>
-                    <Text style={styles.seeAllText}>Ver tudo {'>'}</Text>
-                  </TouchableOpacity>
+          <View style={styles.historyCard}>
+            <View style={styles.historyCardBody}>
+              <LinearGradient
+                colors={[
+                  'rgba(255, 255, 255, 0.10)',
+                  'rgba(255, 255, 255, 0.06)',
+                  'rgba(0, 0, 0, 0.20)',
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.historyCardGradient}
+              >
+                {isLoadingData ? (
+                  <ActivityIndicator size="small" color="#FF8A3D" style={styles.loadingIndicator} />
+                ) : history.length === 0 ? (
+                  <Text style={styles.emptyHistoryText}>Nenhum histórico disponível</Text>
+                ) : (
+                  <View style={styles.historyList}>
+                    {history.slice(0, 5).map((entry, index) => {
+                      const completedSets = entry.exercise.sets.filter((s: any) => s.completed);
+                      const firstSet = completedSets[0];
+                      const isFirst = index === 0;
+                      const isLast = index === history.slice(0, 5).length - 1;
+                      
+                      return (
+                        <View key={index}>
+                          <View style={styles.historyItem}>
+                            <View style={styles.historyItemLeft}>
+                              <Text style={styles.historyDate}>{formatDate(new Date(entry.workout.date))}</Text>
+                              <Text style={styles.historyValue}>
+                                {completedSets.length} × {firstSet?.weight || 0} kg
+                              </Text>
+                            </View>
+                            <View style={styles.historyItemRight}>
+                              {isFirst && (
+                                <View style={styles.historyCheckIcon}>
+                                  <Check size={12} color="rgba(255, 255, 255, 0.92)" strokeWidth={3} />
+                                </View>
+                              )}
+                              <Dumbbell size={20} color="rgba(255, 255, 255, 0.15)" />
+                            </View>
+                          </View>
+                          {!isLast && <View style={styles.historySeparator} />}
+                        </View>
+                      );
+                    })}
+                    {history.length > 5 && (
+                      <TouchableOpacity style={styles.seeAllButton}>
+                        <Text style={styles.seeAllText}>Ver tudo {'>'}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 )}
+              </LinearGradient>
+            </View>
+            
+            {/* Frame - overlay cinza transparente */}
+            <View style={styles.historyCardFrame} pointerEvents="none">
+              {/* Header Row - Histórico + filete - dentro do frame */}
+              <View style={styles.historyHeaderRowFrame}>
+                <View style={styles.historyFilete} />
+                <Text style={styles.historyHeaderText}>HISTÓRICO</Text>
               </View>
-            )}
+              
+              <View style={styles.historyCardFrameBorderTop} />
+              <View style={styles.historyCardFrameBorderBottom} />
+              <View style={styles.historyCardFrameBorderLeft} />
+              <View style={styles.historyCardFrameBorderRight} />
+              <View style={styles.historyCardFrameStroke} />
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -670,17 +730,60 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderBottomLeftRadius: 20,
   },
-  historySection: {
-    marginTop: 8,
+  historyCard: {
+    position: 'relative',
+    borderRadius: 20,
+    marginBottom: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  historyTitle: {
-    fontSize: 16,
+  historyCardBody: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    marginTop: 40, // Espaço para o header no frame
+    marginBottom: 24,
+    marginLeft: 24,
+    marginRight: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+  },
+  historyCardGradient: {
+    padding: 16,
+    borderRadius: 14,
+  },
+  historyHeaderRowFrame: {
+    position: 'absolute',
+    top: 14,
+    left: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  historyFilete: {
+    width: 3,
+    height: 14,
+    borderRadius: 2,
+    backgroundColor: '#FF8A3D',
+    marginRight: 8,
+  },
+  historyHeaderText: {
+    fontSize: 12,
     fontWeight: '700' as const,
-    color: 'rgba(255, 255, 255, 0.92)',
-    marginBottom: 12,
+    color: '#FF8A3D',
   },
   historyList: {
-    gap: 8,
+    gap: 0,
   },
   historyItem: {
     flexDirection: 'row',
@@ -692,31 +795,103 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
-  historyCheckbox: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.30)',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  historyItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  historyCheckIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#4CD964',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   historyDate: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600' as const,
     color: 'rgba(255, 255, 255, 0.92)',
+    minWidth: 60,
   },
   historyValue: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.70)',
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: 'rgba(255, 255, 255, 0.92)',
+  },
+  historySeparator: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    marginLeft: 0,
   },
   seeAllButton: {
     marginTop: 8,
     paddingVertical: 8,
+    alignSelf: 'flex-end',
   },
   seeAllText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#FF8A3D',
     fontWeight: '600' as const,
+  },
+  // Frame - overlay cinza transparente
+  historyCardFrame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    zIndex: 1,
+    overflow: 'hidden',
+  },
+  historyCardFrameStroke: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  historyCardFrameBorderTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  historyCardFrameBorderBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 24,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  historyCardFrameBorderLeft: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    bottom: 24,
+    width: 24,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+  },
+  historyCardFrameBorderRight: {
+    position: 'absolute',
+    top: 40,
+    right: 0,
+    bottom: 24,
+    width: 24,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
   },
   emptyHistoryText: {
     fontSize: 14,

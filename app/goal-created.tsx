@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,10 +40,11 @@ export default function GoalCreatedScreen() {
 
           {/* Ilustração discreta */}
           <View style={styles.illustrationContainer}>
-            <View style={styles.kettlebell}>
-              <View style={styles.kettlebellBody} />
-              <View style={styles.kettlebellHandle} />
-            </View>
+            <Image
+              source={require('@/app/assets/images/peso.png')}
+              style={styles.pesoImage}
+              resizeMode="contain"
+            />
             {/* Partículas laranja */}
             {[...Array(6)].map((_, i) => (
               <View
@@ -114,30 +116,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 48,
   },
-  kettlebell: {
-    width: 80,
-    height: 100,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  kettlebellBody: {
-    width: 60,
-    height: 70,
-    borderRadius: 30,
-    backgroundColor: 'rgba(30, 31, 34, 0.80)',
-    borderWidth: 2,
-    borderColor: '#FF8A3D',
-    position: 'absolute',
-    bottom: 0,
-  },
-  kettlebellHandle: {
-    width: 8,
-    height: 30,
-    backgroundColor: '#FF8A3D',
-    borderRadius: 4,
-    position: 'absolute',
-    top: 0,
+  pesoImage: {
+    width: 150,
+    height: 150,
   },
   particle: {
     width: 8,

@@ -225,21 +225,25 @@ export default function CreateGoalScreen() {
                 <TouchableOpacity
                   style={styles.weightInputButton}
                   onPress={() => handleWeightStep(-2)}
+                  activeOpacity={0.7}
                 >
                   <Minus size={20} color="#FF8A3D" />
                 </TouchableOpacity>
-                <TextInput
-                  style={styles.weightInput}
-                  value={customWeightInput}
-                  onChangeText={handleWeightChange}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor="rgba(255, 255, 255, 0.50)"
-                />
-                <Text style={styles.weightInputUnit}>kg</Text>
+                <View style={styles.weightInputWrapper}>
+                  <TextInput
+                    style={styles.weightInput}
+                    value={customWeightInput}
+                    onChangeText={handleWeightChange}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor="rgba(255, 255, 255, 0.50)"
+                  />
+                  <Text style={styles.weightInputUnit}>kg</Text>
+                </View>
                 <TouchableOpacity
                   style={styles.weightInputButton}
                   onPress={() => handleWeightStep(2)}
+                  activeOpacity={0.7}
                 >
                   <Plus size={20} color="#FF8A3D" />
                 </TouchableOpacity>
@@ -249,6 +253,7 @@ export default function CreateGoalScreen() {
                 <TouchableOpacity
                   style={styles.weightDisplayButton}
                   onPress={() => handleWeightStep(-2)}
+                  activeOpacity={0.7}
                 >
                   <Minus size={20} color="#FF8A3D" />
                 </TouchableOpacity>
@@ -256,6 +261,7 @@ export default function CreateGoalScreen() {
                 <TouchableOpacity
                   style={styles.weightDisplayButton}
                   onPress={() => handleWeightStep(2)}
+                  activeOpacity={0.7}
                 >
                   <Plus size={20} color="#FF8A3D" />
                 </TouchableOpacity>
@@ -361,39 +367,36 @@ const styles = StyleSheet.create({
   weightInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    borderRadius: 13,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    justifyContent: 'center',
+    gap: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  weightInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 100,
+    maxWidth: 200,
   },
   weightInput: {
-    flex: 1,
-    padding: 16,
-    fontSize: 18,
+    fontSize: 32,
     fontWeight: '700' as const,
     color: '#FF8A3D',
     textAlign: 'center',
-    backgroundColor: 'transparent',
+    paddingHorizontal: 8,
+    minWidth: 60,
   },
   weightInputUnit: {
     fontSize: 18,
     fontWeight: '600' as const,
-    color: 'rgba(255, 255, 255, 0.70)',
+    color: 'rgba(255, 255, 255, 0.92)',
+    marginLeft: 4,
   },
   weightInputButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(255, 138, 61, 0.20)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -403,31 +406,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 20,
-    borderRadius: 13,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    paddingVertical: 8,
   },
   weightDisplayValue: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: '700' as const,
     color: '#FF8A3D',
-    minWidth: 80,
+    minWidth: 100,
     textAlign: 'center',
   },
   weightDisplayButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(255, 138, 61, 0.20)',
     alignItems: 'center',
     justifyContent: 'center',

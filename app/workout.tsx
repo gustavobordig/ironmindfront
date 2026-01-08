@@ -27,8 +27,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { WorkoutSet, SetType, Exercise } from '@/types/workout';
 import { colors } from '@/constants/colors';
+import AppBackground from '@/components/organisms/AppBackground';
+import * as goalsService from '@/services/goals.service';
+import type { Goal } from '@/types/workout';
 
 export default function WorkoutScreen() {
   const {
@@ -64,6 +68,7 @@ export default function WorkoutScreen() {
   const [exerciseToRemove, setExerciseToRemove] = useState<{ id: string; name: string } | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [exerciseGoals, setExerciseGoals] = useState<Record<string, Goal | null>>({});
   const hasWorkoutRef = useRef(false);
   const activeWorkoutRef = useRef(activeWorkout);
   const minimizeAnimation = useRef(new Animated.Value(1)).current;
@@ -161,6 +166,34 @@ export default function WorkoutScreen() {
     }, 1000);
 
     return () => clearInterval(interval);
+  }, [activeWorkout]);
+
+  // Carregar metas dos exercícios
+  useEffect(() => {
+    if (!activeWorkout?.exercises) return;
+
+    const loadGoals = async () => {
+      const goalsMap: Record<string, Goal | null> = {};
+      
+      await Promise.all(
+        activeWorkout.exercises.map(async (workoutEx) => {
+          try {
+            const goal = await goalsService.getGoalByExercise(workoutEx.exercise.id);
+            if (goal && goal.targetKg > 0) {
+              goalsMap[workoutEx.exercise.id] = goal;
+            } else {
+              goalsMap[workoutEx.exercise.id] = null;
+            }
+          } catch {
+            goalsMap[workoutEx.exercise.id] = null;
+          }
+        })
+      );
+      
+      setExerciseGoals(goalsMap);
+    };
+
+    loadGoals();
   }, [activeWorkout]);
 
   // Atualizar notificação quando o treino muda
@@ -415,36 +448,41 @@ export default function WorkoutScreen() {
   };
 
   return (
-    <Animated.View
-      style={[
-        styles.animatedContainer,
-        {
-          transform: [{ scaleY: minimizeAnimation }],
-          opacity: minimizeAnimation,
-        },
-      ]}
-    >
-      <SafeAreaView style={styles.container} edges={['top']}>
+    <AppBackground>
+      <Animated.View
+        style={[
+          styles.animatedContainer,
+          {
+            transform: [{ scaleY: minimizeAnimation }],
+            opacity: minimizeAnimation,
+          },
+        ]}
+      >
+        <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={handleCancelWorkout} style={styles.headerButton}>
-            <X size={24} color={colors.error} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{activeWorkout.name}</Text>
-          <View style={styles.timerContainer}>
-            <Clock size={14} color={colors.textSecondary} />
-            <Text style={styles.timerText}>{formatElapsedTime(elapsedTime)}</Text>
+          <View style={styles.headerGradient}>
+            <View style={styles.headerContent}>
+              <TouchableOpacity onPress={handleCancelWorkout} style={styles.headerButtonCircle}>
+                <X size={20} color="#FF5A5A" />
+              </TouchableOpacity>
+              
+              <View style={styles.headerCenter}>
+                <Text style={styles.headerTitle}>{activeWorkout.name}</Text>
+                <View style={styles.timerContainer}>
+                  <Clock size={14} color="#FF8A3D" />
+                  <Text style={styles.timerText}>{formatElapsedTime(elapsedTime)}</Text>
+                </View>
+                <TouchableOpacity onPress={handleMinimizeWorkout} style={styles.minimizeButton}>
+                  <ChevronDown size={16} color="rgba(255, 255, 255, 0.45)" />
+                </TouchableOpacity>
+              </View>
+              
+              <TouchableOpacity onPress={handleCompleteWorkout} style={styles.headerButtonCircle}>
+                <Check size={20} color="#4CD964" />
+              </TouchableOpacity>
+            </View>
           </View>
-          <TouchableOpacity onPress={handleMinimizeWorkout} style={styles.minimizeButton}>
-            <ChevronDown size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={handleCompleteWorkout} style={styles.headerButton}>
-          <Check size={24} color={colors.success} />
-        </TouchableOpacity>
-      </View>
 
       <ScrollView 
         style={styles.scrollView} 
@@ -465,57 +503,90 @@ export default function WorkoutScreen() {
             const completedSets = workoutEx.sets.filter((s) => s.completed).length;
             const allCompleted = workoutEx.sets.length > 0 && completedSets === workoutEx.sets.length;
 
+            const goal = exerciseGoals[workoutEx.exercise.id];
+
             return (
               <View key={workoutEx.id} style={[
                 styles.exerciseCard,
                 allCompleted && styles.exerciseCardCompleted
               ]}>
-                <View style={styles.exerciseHeader}>
-                  <TouchableOpacity
-                    style={styles.exerciseHeaderContent}
-                    onPress={() => toggleExercise(workoutEx.id)}
-                    activeOpacity={0.7}
+                {/* Body - glass principal */}
+                <View style={styles.exerciseCardBody}>
+                  <LinearGradient
+                    colors={[
+                      'rgba(255, 255, 255, 0.10)',
+                      'rgba(255, 255, 255, 0.06)',
+                      'rgba(0, 0, 0, 0.20)',
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.exerciseCardGradient}
                   >
-                    <View style={styles.exerciseInfo}>
-                      <Text style={styles.exerciseName}>{workoutEx.exercise.name}</Text>
-                      <Text style={styles.exerciseMuscle}>{workoutEx.exercise.muscleGroup}</Text>
-                    </View>
-                    <View style={styles.exerciseActions}>
-                      <Text style={styles.exerciseStats}>
-                        {completedSets}/{workoutEx.sets.length}
-                      </Text>
-                      {isExpanded ? (
-                        <ChevronUp size={20} color={colors.textSecondary} />
-                      ) : (
-                        <ChevronDown size={20} color={colors.textSecondary} />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.removeExerciseButton}
-                    onPress={() => {
-                      setExerciseToRemove({ id: workoutEx.id, name: workoutEx.exercise.name });
-                      setShowRemoveExerciseModal(true);
-                    }}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Trash2 size={18} color={colors.error} />
-                  </TouchableOpacity>
-                </View>
+                    {/* Accent bar */}
+                    <View style={styles.exerciseAccentBar} />
+                    
+                    <View style={styles.exerciseHeader}>
+                    <TouchableOpacity
+                      style={styles.exerciseHeaderContent}
+                      onPress={() => toggleExercise(workoutEx.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.exerciseInfo}>
+                        <Text style={styles.exerciseName}>{workoutEx.exercise.name}</Text>
+                        <Text style={styles.exerciseMuscle}>{workoutEx.exercise.muscleGroup}</Text>
+                      </View>
+                      <View style={styles.exerciseActions}>
+                        <Text style={styles.exerciseStats}>
+                          {completedSets}/{workoutEx.sets.length}
+                        </Text>
+                        {isExpanded ? (
+                          <ChevronUp size={20} color="rgba(255, 255, 255, 0.55)" />
+                        ) : (
+                          <ChevronDown size={20} color="rgba(255, 255, 255, 0.55)" />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.removeExerciseButton}
+                      onPress={() => {
+                        setExerciseToRemove({ id: workoutEx.id, name: workoutEx.exercise.name });
+                        setShowRemoveExerciseModal(true);
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Trash2 size={18} color="#FF5A5A" />
+                    </TouchableOpacity>
+                  </View>
 
-                {isExpanded && (
-                  <>
-                    <View style={styles.restTimeSection}>
-                      <Text style={styles.restTimeLabel}>Descanso entre séries:</Text>
-                      <TouchableOpacity
-                        style={styles.restTimeButton}
-                        onPress={() => setRestTimerConfig({ exerciseId: workoutEx.id, visible: true })}
-                      >
-                        <Clock size={16} color={colors.primary} />
-                        <Text style={styles.restTimeValue}>{workoutEx.restTime}s</Text>
-                        <ChevronDown size={16} color={colors.primary} />
-                      </TouchableOpacity>
-                    </View>
+                  {isExpanded && (
+                    <>
+                      {/* Meta Info Row */}
+                      {goal && (
+                        <View style={styles.metaInfoRow}>
+                          <Text style={styles.metaInfoText}>
+                            Meta: {goal.targetKg} kg
+                            {goal.nextMilestoneKg && (
+                              <>
+                                {' · '}
+                                <Text style={styles.metaInfoNext}>Próximo: {goal.nextMilestoneKg} kg</Text>
+                              </>
+                            )}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Rest Time Row */}
+                      <View style={styles.restTimeSection}>
+                        <Text style={styles.restTimeLabel}>Descanso entre séries:</Text>
+                        <TouchableOpacity
+                          style={styles.restTimeChip}
+                          onPress={() => setRestTimerConfig({ exerciseId: workoutEx.id, visible: true })}
+                        >
+                          <Clock size={14} color="#FF8A3D" />
+                          <Text style={styles.restTimeValue}>{workoutEx.restTime}s</Text>
+                          <ChevronDown size={14} color="#FF8A3D" />
+                        </TouchableOpacity>
+                      </View>
 
                     <View style={styles.setsContainer}>
                       {workoutEx.sets.length === 0 ? (
@@ -546,12 +617,14 @@ export default function WorkoutScreen() {
                           )
                         }
                       >
-                        <Plus size={20} color={colors.primary} />
-                        <Text style={styles.addSetText}>Adicionar Série</Text>
+                        <Plus size={18} color="#FF8A3D" />
+                        <Text style={styles.addSetText}>+ Adicionar Série</Text>
                       </TouchableOpacity>
                     </View>
                   </>
-                )}
+                  )}
+                  </LinearGradient>
+                </View>
               </View>
             );
           })
@@ -920,8 +993,9 @@ export default function WorkoutScreen() {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-      </SafeAreaView>
-    </Animated.View>
+        </SafeAreaView>
+      </Animated.View>
+    </AppBackground>
   );
 }
 
@@ -1087,6 +1161,7 @@ function SetRow({
             <TextInput
               style={[
                 styles.setInput,
+                weight && weight !== '' && styles.setInputActive,
                 isExerciseCompleted && styles.setInputCompleted
               ]}
               value={weight}
@@ -1125,7 +1200,7 @@ function SetRow({
           </TouchableOpacity>
 
           <View style={styles.setActionButton}>
-            <Check size={18} color={set.completed ? colors.success : colors.textSecondary} />
+            <Check size={20} color={set.completed ? '#4CD964' : 'rgba(255, 255, 255, 0.35)'} strokeWidth={2.5} />
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -1264,52 +1339,68 @@ const styles = StyleSheet.create({
   animatedContainer: {
     flex: 1,
     overflow: 'hidden',
+    backgroundColor: 'transparent',
   },
   container: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   header: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  headerGradient: {
+    paddingTop: 12,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    minHeight: 88,
+    justifyContent: 'center',
+    borderRadius: 9999, // Pill/Capsule shape - cantos totalmente arredondados
+    backgroundColor: 'rgba(255, 255, 255, 0.06)', // Mesmo padrão dos cards da home
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)', // Mesmo padrão dos cards da home
+    overflow: 'hidden',
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.textSecondary + '20',
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  headerButton: {
+  headerButtonCircle: {
     width: 44,
     height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700' as const,
-    color: colors.textPrimary,
-    marginBottom: 4,
+    color: 'rgba(255, 255, 255, 0.95)',
+    marginBottom: 6,
   },
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    marginBottom: 4,
   },
   timerText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600' as const,
-    color: colors.textSecondary,
+    color: '#FF8A3D',
   },
   minimizeButton: {
-    marginTop: 4,
+    marginTop: 2,
     padding: 4,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1339,20 +1430,54 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   exerciseCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
+    position: 'relative',
+    borderRadius: 20,
+    marginBottom: 14,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.35,
+        shadowRadius: 32,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
+  },
+  exerciseCardBody: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    marginTop: 12,
     marginBottom: 12,
+    marginLeft: 12,
+    marginRight: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: colors.textSecondary + '20',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+  },
+  exerciseCardGradient: {
+    padding: 16,
+    borderRadius: 13,
+  },
+  exerciseAccentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    backgroundColor: '#FF8A3D',
+    borderRadius: 2,
   },
   exerciseCardCompleted: {
-    backgroundColor: colors.success + '60',
-    borderColor: colors.success + '80',
+    borderColor: 'rgba(76, 217, 100, 0.20)',
   },
   exerciseHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 18,
+    paddingLeft: 22, // Espaço para accent bar
     gap: 12,
   },
   exerciseHeaderContent: {
@@ -1371,15 +1496,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   exerciseName: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: 'rgba(255, 255, 255, 0.92)',
     marginBottom: 4,
   },
   exerciseMuscle: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.55)',
     textTransform: 'capitalize',
+    fontWeight: '500' as const,
   },
   exerciseActions: {
     flexDirection: 'row',
@@ -1387,45 +1513,59 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   exerciseStats: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: 'rgba(255, 255, 255, 0.70)',
+  },
+  metaInfoRow: {
+    paddingHorizontal: 18,
+    paddingLeft: 22,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+  },
+  metaInfoText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.70)',
+  },
+  metaInfoNext: {
+    color: '#FF8A3D',
   },
   restTimeSection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
+    paddingLeft: 22,
     paddingVertical: 12,
-    borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: colors.textSecondary + '20',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
   restTimeLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.70)',
     fontWeight: '500' as const,
   },
-  restTimeButton: {
+  restTimeChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: colors.primaryLight + '30',
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: colors.primaryLight + '60',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 12,
   },
   restTimeValue: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: colors.primary,
+    color: '#FF8A3D',
   },
   setsContainer: {
     padding: 16,
     paddingTop: 12,
-    gap: 8,
   },
   noSetsContainer: {
     padding: 24,
@@ -1438,17 +1578,27 @@ const styles = StyleSheet.create({
   },
   setRowWrapper: {
     position: 'relative',
-    marginBottom: 8,
     overflow: 'hidden',
   },
   setRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    padding: 12,
-    backgroundColor: colors.background,
-    borderRadius: 8,
+    gap: 10,
+    padding: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
     zIndex: 1,
+    marginBottom: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 0,
+      },
+    }),
   },
   setRowTouchable: {
     flex: 1,
@@ -1457,16 +1607,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   setRowCompleted: {
-    backgroundColor: colors.success + '15',
+    backgroundColor: 'rgba(76, 217, 100, 0.12)', // Verde mais suave quando completado
+    borderColor: 'rgba(76, 217, 100, 0.25)',
   },
   setNumber: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700' as const,
-    color: colors.textSecondary,
-    width: 24,
+    color: 'rgba(255, 255, 255, 0.55)',
+    width: 28,
     textAlign: 'center',
-    marginTop: 27,
-    lineHeight: 48,
+    marginTop: 29,
+    lineHeight: 52,
   },
   setTypeSelector: {
     flexDirection: 'row',
@@ -1478,21 +1629,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: colors.textSecondary + '40',
-    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     marginTop: 27,
+  },
+  setTypeButtonText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: 'rgba(255, 255, 255, 0.75)',
   },
   setTypeButtonActive: {
     borderWidth: 2,
   },
   setTypeButtonDisabled: {
     opacity: 0.5,
-  },
-  setTypeButtonText: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: colors.textSecondary,
   },
   typeModalOverlay: {
     flex: 1,
@@ -1582,45 +1733,50 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   setInputLabel: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: colors.textSecondary,
-    marginBottom: 4,
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: 'rgba(255, 255, 255, 0.55)',
+    marginBottom: 6,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
     textAlign: 'center',
   },
   setInput: {
     width: '100%',
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: colors.textSecondary + '20',
-    borderRadius: 6,
-    padding: 12,
-    fontSize: 16,
-    color: colors.textPrimary,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    borderRadius: 8,
+    padding: 14,
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: 'rgba(255, 255, 255, 0.92)',
     textAlign: 'center',
-    minHeight: 48,
+    minHeight: 52,
+  },
+  setInputActive: {
+    borderColor: '#FF8A3D',
+    borderWidth: 1.5,
   },
   setInputCompleted: {
-    backgroundColor: colors.success + '30',
-    borderColor: colors.success + '60',
+    backgroundColor: 'rgba(76, 217, 100, 0.10)',
+    borderColor: 'rgba(76, 217, 100, 0.25)',
   },
   setX: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: colors.textSecondary,
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: 'rgba(255, 255, 255, 0.55)',
     marginTop: 27,
     textAlign: 'center',
-    lineHeight: 48,
+    lineHeight: 52,
   },
   setActionButton: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6,
-    marginTop: 27,
+    borderRadius: 8,
+    marginTop: 26,
   },
   deleteBackground: {
     position: 'absolute',
@@ -1638,16 +1794,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    padding: 12,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#FF8A3D',
+    borderRadius: 14,
     borderStyle: 'dashed',
+    backgroundColor: 'transparent',
+    minHeight: 48,
   },
   addSetText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600' as const,
-    color: colors.primary,
+    color: '#FF8A3D',
   },
   addExerciseButton: {
     flexDirection: 'row',
