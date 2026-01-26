@@ -4,11 +4,12 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LogOut } from 'lucide-react-native';
+import { LogOut, BarChart3 } from 'lucide-react-native';
 import MonthCalendar from '@/components/organisms/MonthCalendar';
 import TodayRoutineCard from '@/components/molecules/TodayRoutineCard';
 import TodayGoalCard from '@/components/molecules/TodayGoalCard';
 import ActiveWorkoutBanner from '@/components/organisms/ActiveWorkoutBanner';
+import WeeklyReportModal from '@/components/organisms/WeeklyReportModal';
 import { colors } from '@/constants/colors';
 import AppBackground from '@/components/organisms/AppBackground';
 
@@ -25,6 +26,8 @@ export default function HomeScreen() {
   const todayStatus = getWorkoutStatusForDate(today);
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  const [weeklyReportModal, setWeeklyReportModal] = useState<'summary' | 'prs' | 'insight'>('summary');
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -118,9 +121,34 @@ export default function HomeScreen() {
               <TodayGoalCard />
             </View>
           )}
+          
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.weeklyReportCard}
+              onPress={() => {
+                setWeeklyReportModal('summary');
+                setShowWeeklyReport(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.weeklyReportContent}>
+                <BarChart3 size={24} color={colors.primary} />
+                <View style={styles.weeklyReportText}>
+                  <Text style={styles.weeklyReportTitle}>Relatório Semanal</Text>
+                  <Text style={styles.weeklyReportSubtitle}>Veja seu progresso da semana</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
       <ActiveWorkoutBanner />
+      
+      <WeeklyReportModal
+        visible={showWeeklyReport}
+        onClose={() => setShowWeeklyReport(false)}
+        initialModal={weeklyReportModal}
+      />
     </View>
     </AppBackground>
   );
@@ -163,7 +191,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   section: {
-    marginTop: 8,
+    marginTop: 16,
   },
   sectionTitle: {
     fontSize: 20,
@@ -171,5 +199,31 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: 12,
     marginLeft: 4,
+  },
+  weeklyReportCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    padding: 16,
+    marginBottom: 8,
+  },
+  weeklyReportContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  weeklyReportText: {
+    flex: 1,
+  },
+  weeklyReportTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  weeklyReportSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
 });

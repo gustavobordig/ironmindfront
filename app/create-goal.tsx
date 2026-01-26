@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Minus, Plus } from 'lucide-react-native';
 import { useWorkout } from '@/contexts/WorkoutContext';
+import { MuscleGroup, EquipmentType } from '@/types/workout';
 import HeaderGlass from '@/components/molecules/HeaderGlass';
 import AppBackground from '@/components/organisms/AppBackground';
 import * as goalsService from '@/services/goals.service';
@@ -30,10 +31,42 @@ export default function CreateGoalScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [bestKg, setBestKg] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<MuscleGroup | 'all'>('all');
+  const [selectedEquipment, setSelectedEquipment] = useState<EquipmentType | 'all'>('all');
 
   const exercise = useMemo(() => {
     return allExercises.find(ex => ex.id === exerciseId);
   }, [allExercises, exerciseId]);
+
+  const filteredExercises = useMemo(() => {
+    return allExercises.filter((ex) => {
+      const matchesSearch = !searchQuery.trim() || 
+        ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ex.muscleGroup.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesMuscleGroup = selectedMuscleGroup === 'all' || ex.muscleGroup === selectedMuscleGroup;
+      const matchesEquipment = selectedEquipment === 'all' || ex.equipment === selectedEquipment;
+      
+      return matchesSearch && matchesMuscleGroup && matchesEquipment;
+    });
+  }, [allExercises, searchQuery, selectedMuscleGroup, selectedEquipment]);
+
+  const muscleGroupLabels: Record<string, string> = {
+    chest: 'Peito',
+    back: 'Costas',
+    shoulders: 'Ombros',
+    biceps: 'Bíceps',
+    triceps: 'Tríceps',
+    legs: 'Pernas',
+    core: 'Core',
+    glutes: 'Glúteos',
+    cardio: 'Cardio',
+    other: 'Outros',
+  };
+
+  const handleExerciseSelect = (selectedExerciseId: string) => {
+    router.setParams({ exerciseId: selectedExerciseId });
+  };
 
   useEffect(() => {
     if (!exerciseId) return;
@@ -134,14 +167,333 @@ export default function CreateGoalScreen() {
     router.back();
   };
 
-  if (!exercise) {
+  if (!exerciseId || !exercise) {
     return (
       <AppBackground>
         <SafeAreaView style={styles.container} edges={['top']}>
           <HeaderGlass title="Criar Meta" onBack={handleCancel} />
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Exercício não encontrado</Text>
+          
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <LinearGradient
+                colors={[
+                  'rgba(255, 255, 255, 0.05)',
+                  'rgba(255, 255, 255, 0.03)',
+                  'rgba(0, 0, 0, 0.35)',
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.searchInputGradient}
+              >
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Buscar exercício"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor="rgba(255, 255, 255, 0.50)"
+                />
+              </LinearGradient>
+            </View>
           </View>
+
+          <View style={styles.filtersContainer}>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Grupo Muscular</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedMuscleGroup === 'all' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedMuscleGroup('all')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedMuscleGroup === 'all' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Todos
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedMuscleGroup === 'chest' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedMuscleGroup('chest')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedMuscleGroup === 'chest' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Peito
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedMuscleGroup === 'back' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedMuscleGroup('back')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedMuscleGroup === 'back' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Costas
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedMuscleGroup === 'shoulders' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedMuscleGroup('shoulders')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedMuscleGroup === 'shoulders' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Ombros
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedMuscleGroup === 'biceps' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedMuscleGroup('biceps')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedMuscleGroup === 'biceps' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Bíceps
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedMuscleGroup === 'triceps' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedMuscleGroup('triceps')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedMuscleGroup === 'triceps' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Tríceps
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedMuscleGroup === 'legs' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedMuscleGroup('legs')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedMuscleGroup === 'legs' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Pernas
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedMuscleGroup === 'glutes' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedMuscleGroup('glutes')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedMuscleGroup === 'glutes' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Glúteos
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedMuscleGroup === 'core' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedMuscleGroup('core')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedMuscleGroup === 'core' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Core
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Equipamento</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChips}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedEquipment === 'all' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedEquipment('all')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedEquipment === 'all' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Todos
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedEquipment === 'barra' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedEquipment('barra')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedEquipment === 'barra' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Barra
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedEquipment === 'halteres' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedEquipment('halteres')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedEquipment === 'halteres' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Halteres
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedEquipment === 'maquina' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedEquipment('maquina')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedEquipment === 'maquina' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Máquina
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedEquipment === 'cabo' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedEquipment('cabo')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedEquipment === 'cabo' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Cabo
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    selectedEquipment === 'peso-corporal' && styles.filterChipSelected,
+                  ]}
+                  onPress={() => setSelectedEquipment('peso-corporal')}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      selectedEquipment === 'peso-corporal' && styles.filterChipTextSelected,
+                    ]}
+                  >
+                    Peso Corporal
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+
+          <ScrollView style={styles.exercisesList}>
+            {filteredExercises.map((exercise) => (
+              <TouchableOpacity
+                key={exercise.id}
+                style={styles.exerciseOptionContainer}
+                onPress={() => handleExerciseSelect(exercise.id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.exerciseOptionBody}>
+                  <LinearGradient
+                    colors={[
+                      'rgba(255, 255, 255, 0.05)',
+                      'rgba(255, 255, 255, 0.03)',
+                      'rgba(0, 0, 0, 0.35)',
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.exerciseOptionGradient}
+                  >
+                    <Text style={styles.exerciseOptionName}>{exercise.name}</Text>
+                    <Text style={styles.exerciseOptionGroup}>
+                      {muscleGroupLabels[exercise.muscleGroup] || exercise.muscleGroup}
+                    </Text>
+                  </LinearGradient>
+                </View>
+                
+                <View style={styles.exerciseOptionFrame} pointerEvents="none">
+                  <View style={styles.exerciseOptionFrameBorderTop} />
+                  <View style={styles.exerciseOptionFrameBorderBottom} />
+                  <View style={styles.exerciseOptionFrameBorderLeft} />
+                  <View style={styles.exerciseOptionFrameBorderRight} />
+                  <View style={styles.exerciseOptionFrameStroke} />
+                </View>
+              </TouchableOpacity>
+            ))}
+            
+            {filteredExercises.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>
+                  Nenhum exercício encontrado
+                </Text>
+              </View>
+            )}
+          </ScrollView>
         </SafeAreaView>
       </AppBackground>
     );
@@ -470,15 +822,182 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: 'rgba(255, 255, 255, 0.70)',
   },
-  errorContainer: {
+  searchContainer: {
+    padding: 16,
+    paddingTop: 24,
+  },
+  searchInputContainer: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  searchInputGradient: {
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  searchInput: {
+    padding: 16,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: 'transparent',
+  },
+  filtersContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  filterSection: {
+    marginBottom: 16,
+  },
+  filterLabel: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: 'rgba(255, 255, 255, 0.70)',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  filterChips: {
+    flexDirection: 'row',
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    marginRight: 8,
+  },
+  filterChipSelected: {
+    backgroundColor: '#FF8A3D',
+    borderColor: '#FF8A3D',
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: 'rgba(255, 255, 255, 0.70)',
+  },
+  filterChipTextSelected: {
+    color: 'rgba(255, 255, 255, 0.92)',
+  },
+  exercisesList: {
+    flex: 1,
+  },
+  exerciseOptionContainer: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  exerciseOptionBody: {
+    borderRadius: 13,
+    overflow: 'hidden',
+    marginTop: 12,
+    marginBottom: 12,
+    marginLeft: 12,
+    marginRight: 12,
+  },
+  exerciseOptionGradient: {
+    padding: 16,
+    borderRadius: 13,
+  },
+  exerciseOptionFrame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    zIndex: 1,
+    overflow: 'hidden',
+  },
+  exerciseOptionFrameStroke: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  exerciseOptionFrameBorderTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  exerciseOptionFrameBorderBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  exerciseOptionFrameBorderLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+  },
+  exerciseOptionFrameBorderRight: {
+    position: 'absolute',
+    top: 12,
+    right: 0,
+    bottom: 12,
+    width: 12,
+    backgroundColor: 'rgba(30, 31, 34, 0.40)',
+  },
+  exerciseOptionName: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: 'rgba(255, 255, 255, 0.92)',
+    marginBottom: 4,
+  },
+  exerciseOptionGroup: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.70)',
+    textTransform: 'capitalize',
+  },
+  emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingVertical: 60,
   },
-  errorText: {
+  emptyStateText: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.70)',
+    color: 'rgba(255, 255, 255, 0.50)',
   },
 });
 
