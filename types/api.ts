@@ -247,3 +247,81 @@ export interface RefreshTokenResponse {
   refreshToken: string;
 }
 
+// Weekly Report
+export type ReportStatus = 'IMPROVED' | 'MAINTAINED' | 'DECLINED';
+export type ReportTone = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
+export type ChallengeType = 'SET_NEW_GOAL' | 'INCREASE_FREQUENCY' | 'MAINTAIN_CONSISTENCY';
+export type ChallengeCTA = 'SET_GOAL' | 'INCREASE_FREQUENCY' | 'MAINTAIN_CONSISTENCY';
+export type ChallengeReason = 'FREQUENT_PRS' | 'LOW_FREQUENCY' | 'INCONSISTENT';
+export type InsightKey = 'CONSISTENCY' | 'PROGRESS' | 'VOLUME' | 'FREQUENCY';
+
+export interface WeeklyReportPeriod {
+  startDate: string;
+  endDate: string;
+  label: string;
+}
+
+export interface WeeklyReportOverall {
+  status: ReportStatus;
+  tone: ReportTone;
+}
+
+export interface WeeklyReportFrequency {
+  daysTrained: number;
+  daysOfWeek: string[];
+  comparisonPercent: number;
+  status: ReportStatus;
+}
+
+export interface WeeklyReportVolume {
+  total: number;
+  comparisonPercent: number;
+  status: ReportStatus;
+}
+
+export interface WeeklyReportMuscleHighlight {
+  muscleGroup: MuscleGroup;
+  percentOfTotal: number;
+}
+
+export interface WeeklyReportTopExercise {
+  id: string;
+  name: string;
+  totalVolume: number;
+}
+
+export interface WeeklyReportPR {
+  name: string;
+  previousMax: number;
+  newMax: number;
+  improvement: number;
+}
+
+export interface WeeklyReportPRs {
+  count: number;
+  highlight: WeeklyReportPR;
+  exercises: WeeklyReportPR[];
+}
+
+export interface WeeklyReportChallenge {
+  type: ChallengeType;
+  cta: ChallengeCTA;
+  reason: ChallengeReason;
+}
+
+export interface WeeklyReportInsight {
+  key: InsightKey;
+  text: string;
+}
+
+export interface WeeklyReport {
+  period: WeeklyReportPeriod;
+  overall: WeeklyReportOverall;
+  frequency: WeeklyReportFrequency;
+  volume: WeeklyReportVolume;
+  muscleHighlight: WeeklyReportMuscleHighlight;
+  topExercise: WeeklyReportTopExercise;
+  prs: WeeklyReportPRs;
+  challenge: WeeklyReportChallenge;
+  insight: WeeklyReportInsight;
+}
